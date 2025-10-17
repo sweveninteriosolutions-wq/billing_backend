@@ -10,7 +10,7 @@ from app.schemas.inventory_schemas import GRNCreate, GRNOut
 # --------------------------
 # GRN Services
 # --------------------------
-async def create_grn(db: AsyncSession, grn_data: GRNCreate, created_by: id) -> dict:
+async def create_grn(db: AsyncSession, grn_data: GRNCreate, created_by: int) -> dict:
     # Ensure all products exist
     product_ids = [item.product_id for item in grn_data.items]
     result = await db.execute(select(Product.id).where(Product.id.in_(product_ids), Product.is_deleted == False))
