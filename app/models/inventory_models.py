@@ -77,8 +77,8 @@ class GRN(Base):
 
     supplier = relationship("Supplier", back_populates="grns")
     items = relationship("GRNItem", back_populates="grn", cascade="all, delete-orphan")
-    creator = relationship("User", foreign_keys=[created_by], lazy="joined")
-    verifier = relationship("User", foreign_keys=[verified_by], lazy="joined")
+    creator = relationship("User", foreign_keys=[created_by], lazy="selectin")
+    verifier = relationship("User", foreign_keys=[verified_by], lazy="selectin")
 
 
 class GRNItem(Base):
