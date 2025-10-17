@@ -1,0 +1,46 @@
+.env
+__pycache__/main.cpython-311.pyc
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.pyc.*
+*.pyo.*
+*.env
+*.venv
+*.egg-info/
+*.egg
+*.pytest_cache/
+
+# Virtual environment
+venv/
+sweven/
+.env
+
+# VSCode
+.vscode/
+
+# MacOS
+.DS_Store
+
+# Logs
+*.log
+
+# Uvicorn / FastAPI
+*.db
+
+# Pytest / coverage
+htmlcov/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+temp/
