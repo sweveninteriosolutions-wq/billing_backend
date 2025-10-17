@@ -91,12 +91,15 @@ async def verify_grn(db: AsyncSession, grn_id: int, verifier: int) -> dict:
     return {"message": "GRN verified successfully", "data": GRNOut.model_validate(grn)}
 
 async def delete_grn(db: AsyncSession, grn_id: int) -> dict:
-    result = await db.execute(select(GRN).options(selectinload(GRN.items)).where(GRN.id == grn_id, GRN.is_deleted == False))
+    result = await db.execute(
+        select(GRN).options(selectinload(GRN.items))
+        .where(GRN.id == grn_id, GRN.is_deleted == False)
+    )
     grn = result.scalars().first()
     if not grn:
         raise HTTPException(status_code=404, detail="GRN not found")
 
-    # Revert stock if verified
+    # Revert stock if completed
     if grn.status == "completed":
         product_ids = [item.product_id for item in grn.items]
         result = await db.execute(select(Product).where(Product.id.in_(product_ids)))
@@ -105,10 +108,17 @@ async def delete_grn(db: AsyncSession, grn_id: int) -> dict:
         for item in grn.items:
             product = products_map.get(item.product_id)
             if product and not product.is_deleted:
+                if product.quantity_warehouse < item.quantity:
+                    raise HTTPException(
+                        status_code=400,
+                        detail=f"Cannot delete GRN: product {product.id} stock would go negative"
+                    )
                 product.quantity_warehouse -= item.quantity
                 db.add(product)
 
+    # Mark GRN as deleted
     grn.is_deleted = True
     db.add(grn)
     await db.commit()
+
     return {"message": "GRN deleted successfully"}

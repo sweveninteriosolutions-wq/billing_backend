@@ -8,7 +8,7 @@ from app.schemas.inventory_schemas import SupplierCreate, SupplierUpdate, Suppli
 # --------------------------
 # Supplier Services
 # --------------------------
-async def create_supplier(db: AsyncSession, data: SupplierCreate, created_by: str) -> dict:
+async def create_supplier(db: AsyncSession, data: SupplierCreate) -> dict:
     existing = await db.execute(select(Supplier).where(Supplier.name == data.name, Supplier.is_deleted == False))
     if existing.scalars().first():
         raise HTTPException(status_code=400, detail=f"Supplier '{data.name}' already exists")

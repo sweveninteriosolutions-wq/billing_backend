@@ -12,7 +12,7 @@ router = APIRouter(prefix="/suppliers", tags=["Suppliers CRUD"])
 @router.post("", response_model=SupplierCreateResponse)
 @require_role(["admin", "inventory"])
 async def create_supplier_route(data: SupplierCreate, db: AsyncSession = Depends(get_db), _user=Depends(get_current_user)):
-    return await create_supplier(db, data, created_by=_user.username)
+    return await create_supplier(db, data)
 
 @router.get("", response_model=SupplierListResponse)
 @require_role(["admin", "inventory"])
