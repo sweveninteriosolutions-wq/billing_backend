@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
-from app.services.stock_transfer_service import create_stock_transfer, complete_stock_transfer, get_stock_transfer, update_stock_transfer, delete_stock_transfer, get_all_stock_transfers
+from app.services.inventory_services.stock_transfer_service import create_stock_transfer, complete_stock_transfer, get_stock_transfer, update_stock_transfer, delete_stock_transfer, get_all_stock_transfers
 from app.schemas.inventory_schemas import TransferCreate, TransferResponse, TransferUpdate, MessageResponse, TransferListResponse
 from app.utils.get_user import get_current_user
 from app.utils.check_roles import require_role
