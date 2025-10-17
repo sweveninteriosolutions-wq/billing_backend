@@ -177,8 +177,8 @@ class TransferListResponse(BaseModel):
 class TransferUpdate(BaseModel):
     product_id: Optional[int] = None
     quantity: Optional[int] = None
-    from_location: Optional[str] = None
-    to_location: Optional[str] = None
+    from_location: Optional[LocationEnum] = None
+    to_location: Optional[LocationEnum] = None
 
 
 # --------------------------
