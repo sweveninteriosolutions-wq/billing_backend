@@ -6,7 +6,7 @@ load_dotenv()
 DB_TYPE = os.getenv("DB_TYPE", "sqlite")  # or "postgres"
 
 if DB_TYPE == "postgres":
-    DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+asyncpg://user:pass@host:port/dbname")
+    DATABASE_URL = os.getenv("DATABASE_URL")
 else:
     DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
