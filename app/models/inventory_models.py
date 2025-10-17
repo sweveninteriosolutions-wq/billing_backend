@@ -121,8 +121,8 @@ class StockTransfer(Base):
         CheckConstraint(quantity > 0, name="check_transfer_quantity_positive"),
     )
     product = relationship("Product", back_populates="stock_transfers")
-    transfer_user = relationship("User", foreign_keys=[transferred_by], lazy="joined")
-    complete_user = relationship("User", foreign_keys=[completed_by], lazy="joined")
+    transfer_user = relationship("User", foreign_keys=[transferred_by], lazy="selectin")
+    complete_user = relationship("User", foreign_keys=[completed_by], lazy="selectin")
 
 
 # --------------------------
