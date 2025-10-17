@@ -12,7 +12,7 @@ router = APIRouter(prefix="/products", tags=["Products CRUD"])
 @router.post("", response_model=ProductResponse)
 @require_role(["admin", "inventory"])
 async def create_product_route(data: ProductCreate, db: AsyncSession = Depends(get_db), _user=Depends(get_current_user)):
-    return await create_product(db, data, created_by=_user.username)
+    return await create_product(db, data)
 
 @router.get("", response_model=ProductListResponse)
 @require_role(["admin", "inventory"])

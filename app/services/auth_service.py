@@ -44,15 +44,6 @@ async def create_tokens(user: User, db: AsyncSession):
     return access_token, refresh_token
 
 
-from datetime import timedelta
-from jose import jwt, JWTError
-from fastapi import HTTPException, status
-from sqlalchemy.future import select
-from app.models.user_models import User
-from app.core.config import JWT_SECRET, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
-from app.services.auth_service import create_access_token, create_refresh_token  # assuming you have these helpers
-
-
 async def refresh_access_token(db: AsyncSession, old_refresh_token: str):
     """
     Securely exchange a refresh token for a new access + refresh token pair.
