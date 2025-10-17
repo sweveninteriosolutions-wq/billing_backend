@@ -11,25 +11,25 @@ router = APIRouter(prefix="/suppliers", tags=["Suppliers CRUD"])
 
 @router.post("", response_model=SupplierCreateResponse)
 @require_role(["admin", "inventory"])
-async def create_supplier_route(data: SupplierCreate, db: AsyncSession = Depends(get_db), user=Depends(get_current_user)):
-    return await create_supplier(db, data, created_by=user.username)
+async def create_supplier_route(data: SupplierCreate, db: AsyncSession = Depends(get_db), _user=Depends(get_current_user)):
+    return await create_supplier(db, data, created_by=_user.username)
 
 @router.get("", response_model=SupplierListResponse)
 @require_role(["admin", "inventory"])
-async def list_suppliers(db: AsyncSession = Depends(get_db), user=Depends(get_current_user)):
+async def list_suppliers(db: AsyncSession = Depends(get_db), _user=Depends(get_current_user)):
     return await get_all_suppliers(db)
 
 @router.get("/{supplier_id}", response_model=SupplierCreateResponse)
 @require_role(["admin", "inventory"])
-async def get_supplier_by_id(supplier_id: int, db: AsyncSession = Depends(get_db), user=Depends(get_current_user)):
+async def get_supplier_by_id(supplier_id: int, db: AsyncSession = Depends(get_db), _user=Depends(get_current_user)):
     return await get_supplier(db, supplier_id)
 
 @router.put("/{supplier_id}", response_model=SupplierCreateResponse)
 @require_role(["admin", "inventory"])
-async def update_supplier_route(supplier_id: int, data: SupplierUpdate, db: AsyncSession = Depends(get_db), user=Depends(get_current_user)):
+async def update_supplier_route(supplier_id: int, data: SupplierUpdate, db: AsyncSession = Depends(get_db), _user=Depends(get_current_user)):
     return await update_supplier(db, supplier_id, data)
 
 @router.delete("/{supplier_id}", response_model=MessageResponse)
 @require_role(["admin"])
-async def delete_supplier_route(supplier_id: int, db: AsyncSession = Depends(get_db), user=Depends(get_current_user)):
+async def delete_supplier_route(supplier_id: int, db: AsyncSession = Depends(get_db), _user=Depends(get_current_user)):
     return await delete_supplier(db, supplier_id)

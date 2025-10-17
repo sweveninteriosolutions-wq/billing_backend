@@ -11,20 +11,20 @@ router = APIRouter(prefix="/grns", tags=["GRNs"])
 
 @router.post("", response_model=GRNCreateResponse)
 @require_role(["admin", "inventory"])
-async def create_grn_route(grn: GRNCreate, db: AsyncSession = Depends(get_db), user=Depends(get_current_user)):
-    return await create_grn(db, grn, created_by=user.username)
+async def create_grn_route(grn: GRNCreate, db: AsyncSession = Depends(get_db), _user=Depends(get_current_user)):
+    return await create_grn(db, grn, created_by=_user.id)
 
 @router.post("/{grn_id}/verify", response_model=GRNCreateResponse)
 @require_role(["admin"])
-async def verify_grn_route(grn_id: int, db: AsyncSession = Depends(get_db), user=Depends(get_current_user)):
-    return await verify_grn(db, grn_id, verifier=user.username)
+async def verify_grn_route(grn_id: int, db: AsyncSession = Depends(get_db), _user=Depends(get_current_user)):
+    return await verify_grn(db, grn_id, verifier=_user.id)
 
 @router.get("", response_model=GRNListResponse)
 @require_role(["admin", "inventory"])
-async def list_grns(db: AsyncSession = Depends(get_db), user=Depends(get_current_user)):
+async def list_grns(db: AsyncSession = Depends(get_db), _user=Depends(get_current_user)):
     return await get_all_grns(db)
 
 @router.delete("/{grn_id}", response_model=MessageResponse)
 @require_role(["admin"])
-async def delete_grn_route(grn_id: int, db: AsyncSession = Depends(get_db), user=Depends(get_current_user)):
+async def delete_grn_route(grn_id: int, db: AsyncSession = Depends(get_db), _user=Depends(get_current_user)):
     return await delete_grn(db, grn_id)

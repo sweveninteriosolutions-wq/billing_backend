@@ -13,5 +13,5 @@ router = APIRouter(prefix="/alerts", tags=["Inventory Stock Alerts"])
 
 @router.get("/inventory", response_model=List[StockAlert])
 @require_role(["admin", "inventory"])
-async def stock_alerts(db: AsyncSession = Depends(get_db), user=Depends(get_current_user)):
+async def stock_alerts(db: AsyncSession = Depends(get_db), _user=Depends(get_current_user)):
     return await get_stock_alerts(db)

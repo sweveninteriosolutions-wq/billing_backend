@@ -94,6 +94,7 @@ async def update_user(db: AsyncSession, user_id: int, user_data: UserUpdate):
 # ---------------------------
 async def delete_user(db: AsyncSession, user_id: int):
     target_user = await get_user_by_id(db, user_id)
-    await db.delete(target_user)
+    target_user.is_active = False
+    db.add(target_user)
     await db.commit()
     return target_user

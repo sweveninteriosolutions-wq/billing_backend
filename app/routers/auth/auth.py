@@ -1,5 +1,5 @@
 # app/routers/auth.py
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.schemas.user_schemas import UserLogin, TokenResponse
@@ -16,7 +16,7 @@ async def login(data: UserLogin, db: AsyncSession = Depends(get_db)):
     return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh_token_endpoint(refresh_token: str, db: AsyncSession = Depends(get_db)):
+async def refresh_token_endpoint(refresh_token: str = Body(..., embed=True), db: AsyncSession = Depends(get_db)):
     """
     Exchange a refresh token for a new access token.
     """

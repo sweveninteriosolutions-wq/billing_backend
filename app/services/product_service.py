@@ -71,20 +71,3 @@ async def delete_product(db: AsyncSession, product_id: int) -> dict:
     db.add(product)
     await db.commit()
     return {"message": "Product deleted successfully"}
-
-async def get_stock_alerts(db: AsyncSession) -> List[StockAlert]:
-    result = await db.execute(select(Product).where(Product.is_deleted == False))
-    products = result.scalars().all()
-    alerts = []
-    for p in products:
-        if p.quantity_showroom < p.min_stock_threshold or (p.quantity_showroom + p.quantity_warehouse) < p.min_stock_threshold:
-            alerts.append(
-                StockAlert(
-                    product_id=p.id,
-                    product_name=p.name,
-                    quantity_showroom=p.quantity_showroom,
-                    quantity_total=p.quantity_showroom + p.quantity_warehouse,
-                    min_stock_threshold=p.min_stock_threshold
-                )
-            )
-    return alerts

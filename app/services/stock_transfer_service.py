@@ -9,7 +9,7 @@ from app.schemas.inventory_schemas import TransferCreate, TransferUpdate, Transf
 # --------------------------
 # Stock Transfer Services
 # --------------------------
-async def create_stock_transfer(db: AsyncSession, transfer_data: TransferCreate, transferred_by: str) -> dict:
+async def create_stock_transfer(db: AsyncSession, transfer_data: TransferCreate, transferred_by: int) -> dict:
     result = await db.execute(select(Product).where(Product.id == transfer_data.product_id, Product.is_deleted == False))
     product = result.scalars().first()
     if not product:
@@ -60,36 +60,48 @@ async def update_stock_transfer(db: AsyncSession, transfer_id: int, data: Transf
     return {"message": "Stock transfer updated successfully", "data": TransferOut.model_validate(transfer)}
 
 async def delete_stock_transfer(db: AsyncSession, transfer_id: int) -> dict:
-    result = await db.execute(select(StockTransfer).where(StockTransfer.id == transfer_id, StockTransfer.is_deleted == False))
+    # Fetch transfer
+    result = await db.execute(
+        select(StockTransfer).where(StockTransfer.id == transfer_id, StockTransfer.is_deleted == False)
+    )
     transfer = result.scalars().first()
     if not transfer:
         raise HTTPException(status_code=404, detail="Transfer not found")
 
-    result = await db.execute(select(Product).where(Product.id == transfer.product_id, Product.is_deleted == False))
+    # Fetch associated product
+    result = await db.execute(
+        select(Product).where(Product.id == transfer.product_id, Product.is_deleted == False)
+    )
     product = result.scalars().first()
 
-    if transfer.status == "completed":
+    # Revert stock quantities only if product exists
+    if product and transfer.status == "completed":
         if transfer.to_location == "warehouse":
             product.quantity_warehouse -= transfer.quantity
         else:
             product.quantity_showroom -= transfer.quantity
+
         if transfer.from_location == "warehouse":
             product.quantity_warehouse += transfer.quantity
         else:
             product.quantity_showroom += transfer.quantity
 
+        db.add(product)  # safe, product is not None
+
+    # Mark transfer as deleted
     transfer.is_deleted = True
-    db.add(product)
     db.add(transfer)
     await db.commit()
+
     return {"message": "Stock transfer deleted successfully"}
+
 
 async def get_all_stock_transfers(db: AsyncSession) -> dict:
     result = await db.execute(select(StockTransfer).where(StockTransfer.is_deleted == False))
     transfers = result.scalars().all()
     return {"message": "Stock transfers fetched successfully", "data": [TransferOut.model_validate(t) for t in transfers]}
 
-async def complete_stock_transfer(db: AsyncSession, transfer_id: int, completed_by: str) -> dict:
+async def complete_stock_transfer(db: AsyncSession, transfer_id: int, completed_by: int) -> dict:
     result = await db.execute(select(StockTransfer).where(StockTransfer.id == transfer_id, StockTransfer.is_deleted == False))
     transfer = result.scalars().first()
     if not transfer:
@@ -99,6 +111,17 @@ async def complete_stock_transfer(db: AsyncSession, transfer_id: int, completed_
 
     result = await db.execute(select(Product).where(Product.id == transfer.product_id, Product.is_deleted == False))
     product = result.scalars().first()
+    if not product:
+        # Or handle this case as per business logic, maybe raise an exception
+        # For now, we can skip to avoid crashing.
+        transfer.status = "completed"
+        transfer.completed_by = completed_by
+        transfer.completed_at = datetime.now(timezone.utc)
+        db.add(transfer)
+        await db.commit()
+        await db.refresh(transfer)
+        return {"message": "Stock transfer completed, but product not found.", "data": TransferOut.model_validate(transfer)}
+    
     if transfer.from_location == transfer.to_location:
         raise HTTPException(status_code=400, detail="From and to locations cannot be the same.")
 

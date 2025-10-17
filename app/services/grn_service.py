@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
@@ -10,7 +10,7 @@ from app.schemas.inventory_schemas import GRNCreate, GRNOut
 # --------------------------
 # GRN Services
 # --------------------------
-async def create_grn(db: AsyncSession, grn_data: GRNCreate, created_by: str) -> dict:
+async def create_grn(db: AsyncSession, grn_data: GRNCreate, created_by: id) -> dict:
     # Ensure all products exist
     product_ids = [item.product_id for item in grn_data.items]
     result = await db.execute(select(Product.id).where(Product.id.in_(product_ids), Product.is_deleted == False))
@@ -64,7 +64,7 @@ async def get_all_grns(db: AsyncSession) -> dict:
     grns = result.scalars().all()
     return {"message": "GRNs fetched successfully", "data": [GRNOut.model_validate(g) for g in grns]}
 
-async def verify_grn(db: AsyncSession, grn_id: int, verifier: str) -> dict:
+async def verify_grn(db: AsyncSession, grn_id: int, verifier: int) -> dict:
     result = await db.execute(select(GRN).options(selectinload(GRN.items)).where(GRN.id == grn_id, GRN.is_deleted == False))
     grn = result.scalars().first()
     if not grn:

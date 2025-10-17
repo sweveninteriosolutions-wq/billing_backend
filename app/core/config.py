@@ -10,7 +10,9 @@ if DB_TYPE == "postgres":
 else:
     DATABASE_URL = "sqlite+aiosqlite:///./test.db"
 
-JWT_SECRET = os.getenv("JWT_SECRET", "supersecret")
+JWT_SECRET = os.getenv("JWT_SECRET")
+if not JWT_SECRET:
+    raise ValueError("JWT_SECRET environment variable must be set")
 JWT_ALGORITHM = "HS256"
 
 ACCESS_TOKEN_EXPIRE_MINUTES = 15          # For cashiers/sales/inventory

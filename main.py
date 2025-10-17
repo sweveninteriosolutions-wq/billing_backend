@@ -2,9 +2,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import auth
-from temp import inventory_routes
+from app.routers import inventory
 from app.core.db import Base, engine, init_models
-from app.routers.auth import users
 
 app = FastAPI(
     title="Backend Billing API",
@@ -27,14 +26,8 @@ async def health_check():
 
 # Register routers
 app.include_router(auth.router)
-app.include_router(users.router)
-app.include_router(inventory_routes.router)
+app.include_router(inventory.router)
 
 @app.on_event("startup")
 async def on_startup():
     await init_models()
-
-# Global exception handler (optional)
-@app.exception_handler(Exception)
-async def global_exception_handler(request, exc):
-    return {"error": str(exc)}

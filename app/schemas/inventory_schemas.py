@@ -1,7 +1,7 @@
 from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
 from datetime import datetime
-from pydantic import validator
+from pydantic import field_validator
 from app.models.inventory_models import LocationEnum
 
 
@@ -24,7 +24,7 @@ class ProductCreate(BaseModel):
     quantity_warehouse: int
     min_stock_threshold: int
 
-    @validator('price', 'quantity_showroom', 'quantity_warehouse', 'min_stock_threshold')
+    @field_validator('price', 'quantity_showroom', 'quantity_warehouse', 'min_stock_threshold')
     def non_negative_values(cls, value):
         if value < 0:
             raise ValueError('Must be non-negative')
@@ -129,8 +129,8 @@ class GRNOut(BaseModel):
     notes: Optional[str]
     bill_number: Optional[str]
     bill_file: Optional[str]
-    created_by: str
-    verified_by: Optional[str]
+    created_by: int
+    verified_by: Optional[int]
     status: str
     created_at: datetime
     items: List[GRNItemOut]
@@ -153,14 +153,14 @@ class GRNListResponse(BaseModel):
 class TransferCreate(BaseModel):
     product_id: int
     quantity: int
-    from_location: 'LocationEnum'
-    to_location: 'LocationEnum'
+    from_location: LocationEnum
+    to_location: LocationEnum
 
 class TransferOut(TransferCreate):
     id: int
     status: str
-    transferred_by: str
-    completed_by: Optional[str]
+    transferred_by: int
+    completed_by: Optional[int]
     transfer_date: datetime
 
     class Config:
@@ -169,6 +169,10 @@ class TransferOut(TransferCreate):
 class TransferResponse(BaseModel):
     message: str
     data: TransferOut
+
+class TransferListResponse(BaseModel):
+    message: str
+    data: List[TransferOut]
 
 class TransferUpdate(BaseModel):
     product_id: Optional[int] = None

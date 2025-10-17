@@ -69,14 +69,16 @@ class GRN(Base):
     notes = Column(Text, nullable=True)
     bill_number = Column(String, nullable=True)
     bill_file = Column(String, nullable=True)
-    created_by = Column(String, nullable=False)
-    verified_by = Column(String, nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    verified_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     status = Column(String, default="pending", nullable=False, index=True)
     created_at = Column(DateTime, server_default=func.now(), nullable=False, index=True)
     is_deleted = Column(Boolean, default=False, nullable=False)  # False = active, True = deleted
 
     supplier = relationship("Supplier", back_populates="grns")
     items = relationship("GRNItem", back_populates="grn", cascade="all, delete-orphan")
+    creator = relationship("User", foreign_keys=[created_by], lazy="joined")
+    verifier = relationship("User", foreign_keys=[verified_by], lazy="joined")
 
 
 class GRNItem(Base):
@@ -110,8 +112,8 @@ class StockTransfer(Base):
     from_location = Column(Enum(LocationEnum), nullable=False)
     to_location = Column(Enum(LocationEnum), nullable=False)
     status = Column(String, default="pending", nullable=False, index=True)
-    transferred_by = Column(String, nullable=False)
-    completed_by = Column(String, nullable=True)
+    transferred_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    completed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     transfer_date = Column(DateTime, server_default=func.now(), nullable=False, index=True)
     completed_at = Column(DateTime, nullable=True)
     is_deleted = Column(Boolean, default=False, nullable=False)  # False = active, True = deleted
@@ -119,6 +121,8 @@ class StockTransfer(Base):
         CheckConstraint(quantity > 0, name="check_transfer_quantity_positive"),
     )
     product = relationship("Product", back_populates="stock_transfers")
+    transfer_user = relationship("User", foreign_keys=[transferred_by], lazy="joined")
+    complete_user = relationship("User", foreign_keys=[completed_by], lazy="joined")
 
 
 # --------------------------
