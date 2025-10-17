@@ -2,6 +2,7 @@ from typing import AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from app.core.config import DATABASE_URL
+from sqlalchemy import event
 
 # -----------------------
 # Async engine
@@ -42,9 +43,6 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
             yield session
         finally:
             await session.close()
-
-
-from sqlalchemy import event
 
 # Enable foreign key support for SQLite
 @event.listens_for(engine.sync_engine, "connect")
