@@ -20,8 +20,8 @@ async def refresh_token_endpoint(refresh_token: str = Body(..., embed=True), db:
     """
     Exchange a refresh token for a new access token.
     """
-    access_token = await refresh_access_token(db, refresh_token)
-    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+    new_token_data = await refresh_access_token(db, refresh_token)
+    return TokenResponse(**new_token_data)
 
 @router.post("/logout", response_model=MessageResponse)
 async def logout(db: AsyncSession = Depends(get_db), current_user = Depends(get_current_user)):
