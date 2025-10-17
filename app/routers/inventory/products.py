@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from app.core.db import get_db
-from app.services.product_service import create_product, get_all_products, get_product, update_product, delete_product
+from app.services.inventory_services.product_service import create_product, get_all_products, get_product, update_product, delete_product
 from app.schemas.inventory_schemas import ProductCreate, ProductUpdate, ProductResponse, ProductListResponse, MessageResponse
 from app.utils.get_user import get_current_user
 from app.utils.check_roles import require_role
