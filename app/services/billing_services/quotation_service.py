@@ -5,7 +5,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import selectinload
 from fastapi import HTTPException
 from datetime import datetime
-from random import randint
+from typing import List, Dict, Any, Optional
 from typing import List, Dict, Any, Optional
 
 from app.models.billing_models.quotation_models import Quotation, QuotationItem

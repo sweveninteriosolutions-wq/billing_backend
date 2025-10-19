@@ -3,7 +3,7 @@ from sqlalchemy import (
     Column, Integer, String, Boolean, ForeignKey,
     DateTime, JSON, func, event, DECIMAL
 )
-from sqlalchemy.orm import relationship, validates
+from sqlalchemy.orm import relationship
 from app.core.db import Base
 
 GST_RATE = 0.18  # Uniform 18% GST for all furniture items
