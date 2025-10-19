@@ -11,7 +11,7 @@ from app.schemas.billing_schemas.customer_schema import CustomerOut, CustomerRes
 # CREATE CUSTOMERfrom sqlalchemy.orm import aliased
 from sqlalchemy.exc import IntegrityError
 
-async def create_customer(db: AsyncSession, customer_data, user_id: int) -> CustomerResponse:
+async def create_customer(db: AsyncSession, customer_data: CustomerCreate, user_id: int) -> CustomerResponse:
     try:
         # Create customer
         customer_dict = customer_data.dict()
