@@ -124,7 +124,7 @@ async def get_quotation(db: AsyncSession, quotation_id: int) -> QuotationRespons
 
     return QuotationResponse(
         message="Quotation retrieved successfully",
-        data=QuotationOut.from_orm(quotation)
+        data=QuotationOut.model_validate(quotation)
     )
 
 
