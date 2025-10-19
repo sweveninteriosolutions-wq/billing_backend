@@ -205,9 +205,10 @@ async def update_quotation(db: AsyncSession, quotation_id: int, data: QuotationU
         quotation.customer_id = data.customer_id
 
     # Update quotation fields
-    for key in ["notes", "description"]:
-        if key in data:
-            setattr(quotation, key, data[key])
+    if data.notes is not None:
+        quotation.notes = data.notes
+    if data.description is not None:
+        quotation.description = data.description
 
     # Handle items
     if data.items:
