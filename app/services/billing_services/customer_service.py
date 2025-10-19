@@ -179,8 +179,11 @@ async def update_customer(db: AsyncSession, customer_id: int, data: dict, user_i
         setattr(customer, key, value)
     customer.updated_by = user_id
     await db.commit()
-    await db.refresh(customer)
-    return CustomerResponse(message="Customer updated successfully", data=CustomerOut.from_orm(customer))
+
+    # Reuse get_customer to return a consistent, fully populated object
+    response = await get_customer(db, customer_id)
+    response.message = "Customer updated successfully"
+    return response
 
 
 # SOFT DELETE CUSTOMER
