@@ -1,12 +1,13 @@
-#app/models/billing_models/quotation_models.py
+# app/models/billing_models/quotation_models.py
 from sqlalchemy import (
-    Column, Integer, String, Float, Boolean, ForeignKey,
-    DateTime, JSON, func, event
+    Column, Integer, String, Boolean, ForeignKey,
+    DateTime, JSON, Numeric, event, func
 )
 from sqlalchemy.orm import relationship
 from app.core.db import Base
+from decimal import Decimal
 
-GST_RATE = 0.18  # Uniform 18% GST for all furniture items
+GST_RATE = Decimal("0.18")  # use Decimal for arithmetic
 
 # ==================================================
 # QUOTATION MODEL
@@ -22,9 +23,9 @@ class Quotation(Base):
     description = Column(String, nullable=True)
 
     # Financial fields
-    total_items_amount = Column(Float, default=0.0)  # sum of item totals
-    gst_amount = Column(Float, default=0.0)          # 18% of total_items_amount
-    total_amount = Column(Float, default=0.0)        # total_items_amount + gst_amount
+    total_items_amount = Column(Numeric(12, 2), default=Decimal("0.00"))
+    gst_amount = Column(Numeric(12, 2), default=Decimal("0.00"))
+    total_amount = Column(Numeric(12, 2), default=Decimal("0.00"))
 
     # Notes & status
     notes = Column(String, nullable=True)
@@ -53,12 +54,13 @@ class Quotation(Base):
     # Total calculation
     # ----------------------
     def calculate_totals(self):
-        total_items = round(sum((item.total or 0) for item in self.items if not item.is_deleted), 2)
-        gst = round(total_items * GST_RATE, 2)
+        total_items = sum(
+            (item.total or Decimal("0.00")) for item in self.items if not item.is_deleted
+        )
+        gst = total_items * GST_RATE
         self.total_items_amount = total_items
         self.gst_amount = gst
-        self.total_amount = round(total_items + gst, 2)
-
+        self.total_amount = total_items + gst
 
 
 # Auto-update totals when items are appended or removed
@@ -79,8 +81,8 @@ class QuotationItem(Base):
     product_id = Column(Integer, nullable=False)
     product_name = Column(String, nullable=True)
     quantity = Column(Integer, nullable=False)
-    unit_price = Column(Float, nullable=False)
-    total = Column(Float, nullable=False)
+    unit_price = Column(Numeric(12, 2), nullable=False)
+    total = Column(Numeric(12, 2), nullable=False)
 
     # Audit fields
     created_by = Column(Integer, nullable=True)

@@ -21,90 +21,118 @@ from app.schemas.billing_schemas.quotation_schema import (
 )
 from app.utils.activity_helpers import log_user_activity
 import logging
+from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 
+from sqlalchemy.future import select
+from fastapi import HTTPException
+from datetime import datetime, timezone
+
+GST_RATE = Decimal("0.18")  # use Decimal for arithmetic
 
 # --------------------------
-# Helper: Generate unique quotation number
-# --------------------------
-async def generate_quotation_number(db: AsyncSession) -> str:
-    today_str = datetime.now(timezone.utc).strftime("%Y%m%d")
-    result = await db.execute(select(func.max(Quotation.id)))
-    last_id = result.scalar() or 0
-    sequence_number = last_id + 1
-    return f"VSF-Q-{today_str}-{sequence_number:04d}"
-
-
-# --------------------------
-# CREATE QUOTATION
+# CREATE QUOTATION (Greenlet-safe)
 # --------------------------
 async def create_quotation(db: AsyncSession, data: QuotationCreate, current_user) -> QuotationResponse:
-    customer_id = data.customer_id
-    items = data.items  # list of QuotationItemCreate
+    try:
+        # -----------------------
+        # Validate customer
+        # -----------------------
+        customer = await db.get(Customer, data.customer_id)
+        if not customer or not customer.is_active:
+            raise HTTPException(status_code=404, detail=f"Customer {data.customer_id} not found or inactive")
 
-    customer = await db.get(Customer, customer_id)
-    if not customer or not customer.is_active:
-        raise HTTPException(status_code=404, detail=f"Customer {customer_id} not found or is inactive")
+        # -----------------------
+        # Create initial quotation (TEMP number for now)
+        # -----------------------
+        # Step 1: Create quotation
+        quotation = Quotation(
+            quotation_number="TEMP",
+            customer_id=data.customer_id,
+            approved=False,
+            moved_to_sales=False,
+            moved_to_invoice=False,
+            created_by=current_user.id,
+            description=data.description,
+            notes=data.notes,
+            additional_data=data.additional_data,
+            issue_date=datetime.now(timezone.utc)
+        )
+        db.add(quotation)
+        await db.flush()  # ensure id exists
 
-    quotation_number = await generate_quotation_number(db)
+        # Step 2: Generate unique number
+        today_str = datetime.now(timezone.utc).strftime("%Y%m%d")
+        quotation.quotation_number = f"VSF-Q-{today_str}-{quotation.id:04d}"
 
-    quotation = Quotation(
-        customer_id=customer_id,
-        quotation_number=quotation_number,
-        approved=False,
-        moved_to_sales=False,
-        moved_to_invoice=False,
-        created_by=current_user.id
-    )
+        # Step 3: Create items & calculate totals manually
+        total_items_amount = Decimal("0.00")
+        quotation_items = []
 
-    if data.notes:
-        quotation.notes = data.notes
-    if data.description:
-        quotation.description = data.description
-    if data.additional_data:
-        quotation.additional_data = data.additional_data
+        for item_data in data.items:
+            product = await db.get(Product, item_data.product_id)
+            if not product or product.is_deleted:
+                raise HTTPException(status_code=404, detail=f"Product {item_data.product_id} not found")
 
-    # Add items
-    for item_data in items:
-        product = await db.get(Product, item_data.product_id)
-        if not product or product.is_deleted:
-            raise HTTPException(status_code=404, detail=f"Product {item_data.product_id} not found")
+            unit_price = Decimal(str(product.price))
+            total_price = unit_price * item_data.quantity
+            total_items_amount += total_price
 
-        if any(item.product_id == product.id for item in quotation.items):
-            raise HTTPException(
-                status_code=400,
-                detail=f"Product '{product.name}' is already added to this quotation"
+            quotation_items.append(
+                QuotationItem(
+                    quotation_id=quotation.id,
+                    product_id=product.id,
+                    product_name=product.name,
+                    unit_price=unit_price,
+                    quantity=item_data.quantity,
+                    total=total_price,
+                    created_by=current_user.id
+                )
             )
 
-        total = round(item_data.quantity * product.price, 2)
-        quotation.items.append(QuotationItem(
-            product_id=product.id,
-            product_name=product.name,
-            unit_price=product.price,
-            quantity=item_data.quantity,
-            total=total,
-            created_by=current_user.id
-        ))
+        # Step 4: Assign totals
+        quotation.total_items_amount = total_items_amount
+        quotation.gst_amount = total_items_amount * GST_RATE
+        quotation.total_amount = total_items_amount + quotation.gst_amount
 
-    db.add(quotation)
-    await db.flush()
+        # Step 5: Add items & commit
+        db.add_all(quotation_items)
+        await db.commit()
 
-    # Audit log
-    await log_user_activity(
-        db=db,
-        user_id=current_user.id,
-        username=current_user.username,
-        message=f"Quotation '{quotation_number}' created by user '{current_user.username}'"
-    )
+        # Step 6: Re-fetch quotation with items for safe serialization
+        result = await db.execute(
+            select(Quotation)
+            .where(Quotation.id == quotation.id)
+            .options(selectinload(Quotation.items))
+        )
+        quotation_db = result.scalar_one()
 
-    await db.commit()
-    await db.refresh(quotation)
 
-    return QuotationResponse(
-        message="Quotation created successfully",
-        data=QuotationOut.from_orm(quotation)
-    )
+        # -----------------------
+        # Log activity
+        # -----------------------
+        await log_user_activity(
+            db=db,
+            user_id=current_user.id,
+            username=current_user.username,
+            message=f"Created Quotation '{quotation_db.quotation_number}' for Customer ID {data.customer_id}",
+        )
+
+        # -----------------------
+        # Return safe serializable response
+        # -----------------------
+        return QuotationResponse(
+            message="Quotation created successfully",
+            data=QuotationOut.model_validate(quotation_db),
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating quotation: {str(e)}")
+
 
 
 # --------------------------
