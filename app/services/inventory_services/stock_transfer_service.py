@@ -105,7 +105,6 @@ async def update_stock_transfer(db: AsyncSession, transfer_id: int, data: Transf
                 changes.append(f"{key}: {old_val} → {value}")
 
         db.add(transfer)
-        await db.commit()
         await db.refresh(transfer)
 
         # ✅ Log changes

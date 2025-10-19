@@ -125,7 +125,6 @@ async def update_supplier(db: AsyncSession, supplier_id: int, data: SupplierUpda
                     setattr(supplier, key, value)
 
         db.add(supplier)
-        await db.commit()
         await db.refresh(supplier)
 
         # Log changes
@@ -170,7 +169,6 @@ async def delete_supplier(db: AsyncSession, supplier_id: int, current_user) -> d
 
         supplier.is_deleted = True
         db.add(supplier)
-        await db.commit()
 
         # Log deletion
         if current_user:

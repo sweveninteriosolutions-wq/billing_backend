@@ -127,7 +127,6 @@ async def update_product(db: AsyncSession, product_id: int, data: ProductUpdate,
                     setattr(product, key, value)
 
         db.add(product)
-        await db.commit()
         await db.refresh(product)
 
         # ✅ Log changes
@@ -169,7 +168,6 @@ async def delete_product(db: AsyncSession, product_id: int, current_user):
 
         product.is_deleted = True
         db.add(product)
-        await db.commit()
 
         # ✅ Log deletion
         if current_user:

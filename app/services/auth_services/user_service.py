@@ -131,7 +131,6 @@ async def update_user(db: AsyncSession, user_id: int, user_data: UserUpdate, cur
         target_user.role = user_data.role
 
     db.add(target_user)
-    await db.commit()
     await db.refresh(target_user)
 
     # Log activity
@@ -153,9 +152,6 @@ async def update_user(db: AsyncSession, user_id: int, user_data: UserUpdate, cur
 # ---------------------------
 # DELETE USER
 # ---------------------------
-# ---------------------------
-# DELETE USER
-# ---------------------------
 async def delete_user(db: AsyncSession, user_id: int, current_user):
     """
     Soft-delete (deactivate) a user and log a descriptive message.
@@ -163,7 +159,6 @@ async def delete_user(db: AsyncSession, user_id: int, current_user):
     target_user = await get_user_by_id(db, user_id)
     target_user.is_active = False
     db.add(target_user)
-    await db.commit()
 
     # Log activity
     if current_user:
