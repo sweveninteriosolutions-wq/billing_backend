@@ -9,7 +9,7 @@ from app.schemas.inventory_schemas import ProductCreate, ProductUpdate, ProductO
 # --------------------------
 # Product Services
 # --------------------------
-async def create_product(db: AsyncSession, data: ProductCreate, created_by: str) -> dict:
+async def create_product(db: AsyncSession, data: ProductCreate) -> dict:
     existing = await db.execute(select(Product).where(Product.name == data.name, Product.is_deleted == False))
     if existing.scalars().first():
         raise HTTPException(status_code=400, detail=f"Product '{data.name}' already exists")
