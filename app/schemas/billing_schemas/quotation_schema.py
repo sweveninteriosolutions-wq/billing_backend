@@ -2,6 +2,7 @@
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
+from decimal import Decimal
 
 # --------------------------
 # Quotation Item Schemas
@@ -14,9 +15,9 @@ class QuotationItemOut(BaseModel):
     id: int
     product_id: int
     product_name: str
-    unit_price: float
+    unit_price: Decimal
     quantity: int
-    total: float
+    total: Decimal
 
     class Config:
         from_attributes = True
@@ -54,9 +55,9 @@ class QuotationOut(BaseModel):
     customer_id: int
     description: Optional[str]
     notes: Optional[str]
-    total_amount: float
-    gst_amount: float
-    total_items_amount: float
+    total_amount: Decimal
+    gst_amount: Decimal
+    total_items_amount: Decimal
     additional_data: Optional[dict]
     approved: bool
     moved_to_sales: bool

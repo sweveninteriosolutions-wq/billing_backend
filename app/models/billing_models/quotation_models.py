@@ -1,7 +1,7 @@
 #app/models/billing_models/quotation_models.py
 from sqlalchemy import (
-    Column, Integer, String, Float, Boolean, ForeignKey,
-    DateTime, JSON, func, event
+    Column, Integer, String, Boolean, ForeignKey,
+    DateTime, JSON, func, event, DECIMAL
 )
 from sqlalchemy.orm import relationship, validates
 from app.core.db import Base
@@ -22,9 +22,9 @@ class Quotation(Base):
     description = Column(String, nullable=True)
 
     # Financial fields
-    total_items_amount = Column(Float, default=0.0)  # sum of item totals
-    gst_amount = Column(Float, default=0.0)          # 18% of total_items_amount
-    total_amount = Column(Float, default=0.0)        # total_items_amount + gst_amount
+    total_items_amount = Column(DECIMAL, default=0.0)  # sum of item totals
+    gst_amount = Column(DECIMAL, default=0.0)          # 18% of total_items_amount
+    total_amount = Column(DECIMAL, default=0.0)        # total_items_amount + gst_amount
 
     # Notes & status
     notes = Column(String, nullable=True)
@@ -79,8 +79,8 @@ class QuotationItem(Base):
     product_id = Column(Integer, nullable=False)
     product_name = Column(String, nullable=True)
     quantity = Column(Integer, nullable=False)
-    unit_price = Column(Float, nullable=False)
-    total = Column(Float, nullable=False)
+    unit_price = Column(DECIMAL, nullable=False)
+    total = Column(DECIMAL, nullable=False)
 
     # Audit fields
     created_by = Column(Integer, nullable=True)

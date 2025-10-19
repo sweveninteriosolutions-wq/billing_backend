@@ -24,85 +24,92 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
-# --------------------------
-# Helper: Generate unique quotation number
-# --------------------------
-async def generate_quotation_number(db: AsyncSession) -> str:
-    today_str = datetime.utcnow().strftime("%Y%m%d")
-    result = await db.execute(select(func.max(Quotation.id)))
-    last_id = result.scalar() or 0
-    sequence_number = last_id + 1
-    return f"VSF-Q-{today_str}-{sequence_number:04d}"
-
-
 # --------------------------
 # CREATE QUOTATION
 # --------------------------
 async def create_quotation(db: AsyncSession, data: QuotationCreate, current_user) -> QuotationResponse:
-    customer_id = data.customer_id
-    items = data.items  # list of QuotationItemCreate
+    try:
+        # -----------------------
+        # Validate Customer
+        # -----------------------
+        customer_id = data.customer_id
+        customer = await db.get(Customer, customer_id)
+        if not customer or not customer.is_active:
+            raise HTTPException(status_code=404, detail=f"Customer {customer_id} not found or inactive")
 
-    customer = await db.get(Customer, customer_id)
-    if not customer or customer.is_active:
-        raise HTTPException(status_code=404, detail=f"Customer {customer_id} not found")
+        # -----------------------
+        # Create Initial Quotation (no number yet)
+        # -----------------------
+        quotation = Quotation(
+            customer_id=customer_id,
+            approved=False,
+            moved_to_sales=False,
+            moved_to_invoice=False,
+            created_by=current_user.id,
+            description=data.description,
+            notes=data.notes,
+            additional_data=data.additional_data,
+            issue_date=datetime.utcnow()
+        )
 
-    quotation_number = await generate_quotation_number(db)
+        db.add(quotation)
+        await db.flush()  # ensures quotation.id is now available from DB
 
-    quotation = Quotation(
-        customer_id=customer_id,
-        quotation_number=quotation_number,
-        approved=False,
-        moved_to_sales=False,
-        moved_to_invoice=False,
-        created_by=current_user.id
-    )
+        # -----------------------
+        # Generate Unique Quotation Number (safe, race-free)
+        # -----------------------
+        today_str = datetime.utcnow().strftime("%Y%m%d")
+        quotation.quotation_number = f"VSF-Q-{today_str}-{quotation.id:04d}"
 
-    if data.notes:
-        quotation.notes = data.notes
-    if data.description:
-        quotation.description = data.description
-    if data.additional_data:
-        quotation.additional_data = data.additional_data
+        # -----------------------
+        # Add Items
+        # -----------------------
+        for item_data in data.items:
+            product = await db.get(Product, item_data.product_id)
+            if not product or product.is_deleted:
+                raise HTTPException(status_code=404, detail=f"Product {item_data.product_id} not found or deleted")
 
-    # Add items
-    for item_data in items:
-        product = await db.get(Product, item_data.product_id)
-        if not product or product.is_deleted:
-            raise HTTPException(status_code=404, detail=f"Product {item_data.product_id} not found")
+            # Prevent duplicates in the same quotation
+            if any(item.product_id == product.id for item in quotation.items):
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Product '{product.name}' is already added to this quotation"
+                )
 
-        if any(item.product_id == product.id for item in quotation.items):
-            raise HTTPException(
-                status_code=400,
-                detail=f"Product '{product.name}' is already added to this quotation"
-            )
+            quotation.items.append(QuotationItem(
+                product_id=product.id,
+                product_name=product.name,
+                unit_price=product.price,
+                quantity=item_data.quantity,
+                created_by=current_user.id
+            ))
 
-        quotation.items.append(QuotationItem(
-            product_id=product.id,
-            product_name=product.name,
-            unit_price=product.price,
-            quantity=item_data.quantity,
-            created_by=current_user.id
-        ))
+        # -----------------------
+        # Commit & Refresh
+        # -----------------------
+        await db.commit()
+        await db.refresh(quotation)
 
-    db.add(quotation)
-    await db.flush()
+        # -----------------------
+        # Log Activity
+        # -----------------------
+        await log_user_activity(
+            db=db,
+            user_id=current_user.id,
+            username=current_user.username,
+            message=f"Created Quotation '{quotation.quotation_number}' for Customer ID {customer_id}"
+        )
 
-    # Audit log
-    await log_user_activity(
-        db=db,
-        user_id=current_user.id,
-        username=current_user.username,
-        message=f"Quotation '{quotation_number}' created by user '{current_user.username}'"
-    )
+        return QuotationResponse(
+            message="Quotation created successfully",
+            data=QuotationOut.from_orm(quotation)
+        )
 
-    await db.commit()
-    await db.refresh(quotation)
-
-    return QuotationResponse(
-        message="Quotation created successfully",
-        data=QuotationOut.from_orm(quotation)
-    )
+    except HTTPException:
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating quotation: {str(e)}")
 
 
 # --------------------------
