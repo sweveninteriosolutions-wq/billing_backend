@@ -154,7 +154,7 @@ async def get_all_customers(
     # Pagination
     query = query.offset(offset).limit(limit)
     result = await db.execute(query)
-    rows = result.all()
+    rows = result.unique().all()
 
     customer_list = []
     for customer, created_by_name, updated_by_name in rows:
