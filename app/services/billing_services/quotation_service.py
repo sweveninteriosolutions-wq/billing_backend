@@ -77,11 +77,13 @@ async def create_quotation(db: AsyncSession, data: QuotationCreate, current_user
                 detail=f"Product '{product.name}' is already added to this quotation"
             )
 
+        total = round(item_data.quantity * product.price, 2)
         quotation.items.append(QuotationItem(
             product_id=product.id,
             product_name=product.name,
             unit_price=product.price,
             quantity=item_data.quantity,
+            total=total,
             created_by=current_user.id
         ))
 
