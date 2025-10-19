@@ -29,7 +29,7 @@ from sqlalchemy.future import select
 from fastapi import HTTPException
 from datetime import datetime, timezone
 from datetime import datetime
-
+GST_RATE = Decimal("0.18")  # use Decimal for arithmetic
 
 # --------------------------
 # CREATE QUOTATION (Greenlet-safe)
@@ -46,6 +46,7 @@ async def create_quotation(db: AsyncSession, data: QuotationCreate, current_user
         # -----------------------
         # Create initial quotation (TEMP number for now)
         # -----------------------
+        # Step 1: Create quotation
         quotation = Quotation(
             quotation_number="TEMP",
             customer_id=data.customer_id,
@@ -59,49 +60,54 @@ async def create_quotation(db: AsyncSession, data: QuotationCreate, current_user
             issue_date=datetime.now(timezone.utc)
         )
         db.add(quotation)
-        await db.flush()  # ensures quotation.id exists
+        await db.flush()  # ensure id exists
 
-        # -----------------------
-        # Generate unique quotation number
-        # -----------------------
+        # Step 2: Generate unique number
         today_str = datetime.now(timezone.utc).strftime("%Y%m%d")
         quotation.quotation_number = f"VSF-Q-{today_str}-{quotation.id:04d}"
 
-        # -----------------------
-        # Add quotation items
-        # -----------------------
+        # Step 3: Create items & calculate totals manually
+        total_items_amount = Decimal("0.00")
         quotation_items = []
+
         for item_data in data.items:
             product = await db.get(Product, item_data.product_id)
             if not product or product.is_deleted:
-                raise HTTPException(status_code=404, detail=f"Product {item_data.product_id} not found or deleted")
+                raise HTTPException(status_code=404, detail=f"Product {item_data.product_id} not found")
 
-            unit_price_dec = Decimal(str(product.price * item_data.quantity))
+            unit_price = Decimal(str(product.price))
+            total_price = unit_price * item_data.quantity
+            total_items_amount += total_price
+
             quotation_items.append(
                 QuotationItem(
                     quotation_id=quotation.id,
                     product_id=product.id,
                     product_name=product.name,
-                    unit_price=product.price,
+                    unit_price=unit_price,
                     quantity=item_data.quantity,
-                    total=unit_price_dec,
+                    total=total_price,
                     created_by=current_user.id
                 )
             )
 
+        # Step 4: Assign totals
+        quotation.total_items_amount = total_items_amount
+        quotation.gst_amount = total_items_amount * GST_RATE
+        quotation.total_amount = total_items_amount + quotation.gst_amount
 
+        # Step 5: Add items & commit
         db.add_all(quotation_items)
-        await db.commit()  # persist both quotation & items
+        await db.commit()
 
-        # -----------------------
-        # Query back the quotation & items (new session context)
-        # -----------------------
+        # Step 6: Re-fetch quotation with items for safe serialization
         result = await db.execute(
             select(Quotation)
             .where(Quotation.id == quotation.id)
             .options(selectinload(Quotation.items))
         )
         quotation_db = result.scalar_one()
+
 
         # -----------------------
         # Log activity
