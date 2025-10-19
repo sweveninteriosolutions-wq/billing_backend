@@ -96,6 +96,9 @@ async def get_user_by_id(db: AsyncSession, user_id: int):
 # ---------------------------
 # UPDATE USER
 # ---------------------------
+# ---------------------------
+# UPDATE USER
+# ---------------------------
 async def update_user(db: AsyncSession, user_id: int, user_data: UserUpdate, current_user):
     """
     Update a user and log a descriptive message.
@@ -141,10 +144,15 @@ async def update_user(db: AsyncSession, user_id: int, user_data: UserUpdate, cur
             message=f"{current_user.role.capitalize()} updated {target_user.role} "
                     f"with username {target_user.username}: {change_summary}"
         )
+        await db.commit()  # ✅ commit the log
 
     return target_user
 
 
+
+# ---------------------------
+# DELETE USER
+# ---------------------------
 # ---------------------------
 # DELETE USER
 # ---------------------------
@@ -166,5 +174,6 @@ async def delete_user(db: AsyncSession, user_id: int, current_user):
             message=f"{current_user.role.capitalize()} deactivated {target_user.role} "
                     f"with username {target_user.username}"
         )
+        await db.commit()  # ✅ commit the log
 
     return target_user

@@ -2,6 +2,7 @@ from datetime import datetime
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, JSON
 from sqlalchemy.sql import func
 from app.core.db import Base
+from sqlalchemy import ForeignKey
 
 class Customer(Base):
     __tablename__ = "customers"
