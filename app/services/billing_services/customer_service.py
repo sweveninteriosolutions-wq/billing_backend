@@ -3,6 +3,8 @@ from sqlalchemy.future import select
 from sqlalchemy import func
 from sqlalchemy.exc import IntegrityError
 from fastapi import HTTPException
+from sqlalchemy.orm import aliased
+from sqlalchemy import asc, desc
 
 from app.models.billing_models.customer_models import Customer
 from app.models.user_models import User  # Assuming User model exists
@@ -65,33 +67,31 @@ async def create_customer(db: AsyncSession, customer_data, user_id: int) -> Cust
 
 # GET SINGLE CUSTOMER
 async def get_customer(db: AsyncSession, customer_id: int) -> CustomerResponse:
-    customer = await db.get(Customer, customer_id)
-    if not customer or not customer.is_active:
+    created_user = aliased(User)
+    updated_user = aliased(User)
+    stmt = (
+        select(
+            Customer,
+            created_user.username.label("created_by_name"),
+            updated_user.username.label("updated_by_name")
+        )
+        .outerjoin(created_user, Customer.created_by == created_user.id)
+        .outerjoin(updated_user, Customer.updated_by == updated_user.id)
+        .where(Customer.id == customer_id, Customer.is_active == True)
+    )
+    result = await db.execute(stmt)
+    row = result.first()
+
+    if not row:
         raise HTTPException(status_code=404, detail="Customer not found")
-    # Optional: fetch names for created_by / updated_by
-    created_by_name = updated_by_name = None
-    if customer.created_by:
-        u = await db.get(User, customer.created_by)
-        created_by_name = u.username if u else None
-    if customer.updated_by:
-        u = await db.get(User, customer.updated_by)
-        updated_by_name = u.username if u else None
+
+    customer, created_by_name, updated_by_name = row
+
     cust_out = CustomerOut.from_orm(customer)
     cust_out.created_by_name = created_by_name
     cust_out.updated_by_name = updated_by_name
+
     return CustomerResponse(message="Customer retrieved successfully", data=cust_out)
-
-
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from sqlalchemy import func, asc, desc
-from sqlalchemy.orm import aliased
-from fastapi import HTTPException
-from sqlalchemy.exc import IntegrityError
-
-from app.models.billing_models.customer_models import Customer
-from app.models.user_models import User
-from app.schemas.billing_schemas.customer_schema import CustomerOut, CustomerResponse, CustomerListResponse
 
 async def get_all_customers(
     db: AsyncSession,
