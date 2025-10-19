@@ -1,8 +1,11 @@
 # app/middleware/activity_logger.py
 from fastapi import Request
+import logging
 from starlette.middleware.base import BaseHTTPMiddleware
 from app.utils.activity_helpers import log_user_activity
 from app.core.db import get_db
+
+logger = logging.getLogger(__name__)
 
 class ActivityLoggerMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -28,6 +31,7 @@ class ActivityLoggerMiddleware(BaseHTTPMiddleware):
                 async for db in get_db():  # iterate async generator
                     await log_user_activity(db, user_id=user_id, username=username, message=message)
             except Exception as e:
-                print("Failed to log activity:", e)
+                 logger.exception(f"Activity log failed | user_id={user_id} | path={request.url.path} | method={request.method}")
+
 
         return response

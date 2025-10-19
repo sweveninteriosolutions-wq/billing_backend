@@ -2,39 +2,100 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
-from app.services.inventory_services.stock_transfer_service import create_stock_transfer, complete_stock_transfer, get_stock_transfer, update_stock_transfer, delete_stock_transfer, get_all_stock_transfers
-from app.schemas.inventory_schemas import TransferCreate, TransferResponse, TransferUpdate, MessageResponse, TransferListResponse
+from app.services.inventory_services.stock_transfer_service import (
+    create_stock_transfer,
+    complete_stock_transfer,
+    get_stock_transfer,
+    update_stock_transfer,
+    delete_stock_transfer,
+    get_all_stock_transfers
+)
+from app.schemas.inventory_schemas import (
+    TransferCreate,
+    TransferResponse,
+    TransferUpdate,
+    TransferListResponse,
+    MessageResponse
+)
 from app.utils.get_user import get_current_user
 from app.utils.check_roles import require_role
 
 router = APIRouter(prefix="/transfers", tags=["Stock Transfers"])
 
+
+# --------------------------
+# CREATE STOCK TRANSFER
+# --------------------------
 @router.post("", response_model=TransferResponse)
 @require_role(["admin", "inventory"])
-async def create_transfer_route(transfer: TransferCreate, db: AsyncSession = Depends(get_db), _user=Depends(get_current_user)):
-    return await create_stock_transfer(db, transfer, transferred_by=_user.id)
+async def create_transfer_route(
+    transfer: TransferCreate,
+    db: AsyncSession = Depends(get_db),
+    _user = Depends(get_current_user)
+):
+    return await create_stock_transfer(db, transfer, current_user=_user)
 
+
+# --------------------------
+# COMPLETE STOCK TRANSFER
+# --------------------------
 @router.post("/{transfer_id}/complete", response_model=TransferResponse)
 @require_role(["admin", "inventory"])
-async def complete_transfer_route(transfer_id: int, db: AsyncSession = Depends(get_db), _user=Depends(get_current_user)):
-    return await complete_stock_transfer(db, transfer_id, completed_by=_user.id)
+async def complete_transfer_route(
+    transfer_id: int,
+    db: AsyncSession = Depends(get_db),
+    _user = Depends(get_current_user)
+):
+    return await complete_stock_transfer(db, transfer_id, current_user=_user)
 
+
+# --------------------------
+# GET SINGLE STOCK TRANSFER
+# --------------------------
 @router.get("/{transfer_id}", response_model=TransferResponse)
 @require_role(["admin", "inventory"])
-async def get_transfer_by_id(transfer_id: int, db: AsyncSession = Depends(get_db), _user=Depends(get_current_user)):
+async def get_transfer_by_id(
+    transfer_id: int,
+    db: AsyncSession = Depends(get_db),
+    _user = Depends(get_current_user)
+):
     return await get_stock_transfer(db, transfer_id)
 
-@router.get("/", response_model=TransferListResponse)
+
+# --------------------------
+# GET ALL STOCK TRANSFERS
+# --------------------------
+@router.get("", response_model=TransferListResponse)
 @require_role(["admin", "inventory"])
-async def get_all_transfers(db: AsyncSession = Depends(get_db), _user=Depends(get_current_user)):
+async def get_all_transfers(
+    db: AsyncSession = Depends(get_db),
+    _user = Depends(get_current_user)
+):
     return await get_all_stock_transfers(db)
 
+
+# --------------------------
+# UPDATE STOCK TRANSFER
+# --------------------------
 @router.put("/{transfer_id}", response_model=TransferResponse)
 @require_role(["admin", "inventory"])
-async def update_transfer_route(transfer_id: int, data: TransferUpdate, db: AsyncSession = Depends(get_db), _user=Depends(get_current_user)):
-    return await update_stock_transfer(db, transfer_id, data)
+async def update_transfer_route(
+    transfer_id: int,
+    data: TransferUpdate,
+    db: AsyncSession = Depends(get_db),
+    _user = Depends(get_current_user)
+):
+    return await update_stock_transfer(db, transfer_id, data, current_user=_user)
 
+
+# --------------------------
+# DELETE STOCK TRANSFER
+# --------------------------
 @router.delete("/{transfer_id}", response_model=MessageResponse)
 @require_role(["admin"])
-async def delete_transfer_route(transfer_id: int, db: AsyncSession = Depends(get_db), _user=Depends(get_current_user)):
-    return await delete_stock_transfer(db, transfer_id)
+async def delete_transfer_route(
+    transfer_id: int,
+    db: AsyncSession = Depends(get_db),
+    _user = Depends(get_current_user)
+):
+    return await delete_stock_transfer(db, transfer_id, current_user=_user)

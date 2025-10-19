@@ -18,42 +18,54 @@ ALLOWED_ROLES = {"admin", "cashier", "sales", "inventory"}  # Add all valid role
 # ---------------------------
 async def create_user(db: AsyncSession, user_data: UserCreate, current_user):
     """
-    Create a new user and log a human-readable activity message.
+    Create a new user and log the activity in a single transaction.
     """
-    # Check username uniqueness
-    existing = await db.execute(select(User).where(User.username == user_data.username))
-    if existing.scalars().first():
-        raise HTTPException(status_code=400, detail="Username already exists")
-    
-    # Validate role
-    if user_data.role not in ALLOWED_ROLES:
-        raise HTTPException(status_code=400, detail=f"Role must be one of {ALLOWED_ROLES}")
+    try:
+        # 1️⃣ Check username uniqueness
+        existing = await db.execute(select(User).where(User.username == user_data.username))
+        if existing.scalars().first():
+            raise HTTPException(status_code=400, detail="Username already exists")
+        
+        # 2️⃣ Validate role
+        if user_data.role not in ALLOWED_ROLES:
+            raise HTTPException(status_code=400, detail=f"Role must be one of {ALLOWED_ROLES}")
 
-    # Validate password length
-    if len(user_data.password) < 6:
-        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+        # 3️⃣ Validate password length
+        if len(user_data.password) < 6:
+            raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
 
-    # Create user
-    new_user = User(
-        username=user_data.username,
-        password_hash=hash_password(user_data.password),
-        role=user_data.role
-    )
-    db.add(new_user)
-    await db.commit()
-    await db.refresh(new_user)
-
-    # Log activity
-    if current_user:
-        await log_user_activity(
-            db,
-            user_id=current_user.id,
-            username=current_user.username,
-            message=f"{current_user.role.capitalize()} created {new_user.role} "
-                    f"with username {new_user.username} and user id {new_user.id}"
+        # 4️⃣ Create user (not committed yet)
+        new_user = User(
+            username=user_data.username,
+            password_hash=hash_password(user_data.password),
+            role=user_data.role
         )
+        db.add(new_user)
+        await db.flush()  # ensures new_user.id is available
 
-    return new_user
+        # 5️⃣ Log activity (same transaction)
+        if current_user:
+            await log_user_activity(
+                db,
+                user_id=current_user.id,
+                username=current_user.username,
+                message=(
+                    f"{current_user.role.capitalize()} created {new_user.role} "
+                    f"with username {new_user.username} and user id {new_user.id}"
+                )
+            )
+
+        # 6️⃣ Commit once — both user + activity are persisted atomically
+        await db.commit()
+        await db.refresh(new_user)
+        return new_user
+
+    except HTTPException:
+        await db.rollback()
+        raise
+    except Exception as e:
+        await db.rollback()
+        raise HTTPException(status_code=500, detail=f"Error creating user: {e}")
 
 
 # ---------------------------
@@ -81,6 +93,9 @@ async def get_user_by_id(db: AsyncSession, user_id: int):
     return user
 
 
+# ---------------------------
+# UPDATE USER
+# ---------------------------
 # ---------------------------
 # UPDATE USER
 # ---------------------------
@@ -116,7 +131,6 @@ async def update_user(db: AsyncSession, user_id: int, user_data: UserUpdate, cur
         target_user.role = user_data.role
 
     db.add(target_user)
-    await db.commit()
     await db.refresh(target_user)
 
     # Log activity
@@ -129,8 +143,10 @@ async def update_user(db: AsyncSession, user_id: int, user_data: UserUpdate, cur
             message=f"{current_user.role.capitalize()} updated {target_user.role} "
                     f"with username {target_user.username}: {change_summary}"
         )
+        await db.commit()  # ✅ commit the log
 
     return target_user
+
 
 
 # ---------------------------
@@ -143,7 +159,6 @@ async def delete_user(db: AsyncSession, user_id: int, current_user):
     target_user = await get_user_by_id(db, user_id)
     target_user.is_active = False
     db.add(target_user)
-    await db.commit()
 
     # Log activity
     if current_user:
@@ -154,5 +169,6 @@ async def delete_user(db: AsyncSession, user_id: int, current_user):
             message=f"{current_user.role.capitalize()} deactivated {target_user.role} "
                     f"with username {target_user.username}"
         )
+        await db.commit()  # ✅ commit the log
 
     return target_user
