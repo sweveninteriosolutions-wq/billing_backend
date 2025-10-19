@@ -10,10 +10,9 @@ from app.models.billing_models.customer_models import Customer
 from app.models.user_models import User  # Assuming User model exists
 from app.schemas.billing_schemas.customer_schema import CustomerOut, CustomerResponse, CustomerListResponse
 
-# CREATE CUSTOMERfrom sqlalchemy.orm import aliased
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import aliased
 
-async def create_customer(db: AsyncSession, customer_data, user_id: int) -> CustomerResponse:
+async def create_customer(db: AsyncSession, customer_data: CustomerCreate, user_id: int) -> CustomerResponse:
     try:
         # Create customer
         customer_dict = customer_data.dict()
@@ -62,7 +61,7 @@ async def create_customer(db: AsyncSession, customer_data, user_id: int) -> Cust
 
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred while creating the customer.")
 
 
 # GET SINGLE CUSTOMER
@@ -180,17 +179,25 @@ async def update_customer(db: AsyncSession, customer_id: int, data: dict, user_i
         setattr(customer, key, value)
     customer.updated_by = user_id
     await db.commit()
-    await db.refresh(customer)
-    return CustomerResponse(message="Customer updated successfully", data=CustomerOut.from_orm(customer))
+
+    # Reuse get_customer to return a consistent, fully populated object
+    response = await get_customer(db, customer_id)
+    response.message = "Customer updated successfully"
+    return response
 
 
 # SOFT DELETE CUSTOMER
 async def delete_customer(db: AsyncSession, customer_id: int, user_id: int) -> CustomerResponse:
+    # Get the full customer object before deletion to ensure a consistent response.
+    response = await get_customer(db, customer_id)
+
+    # Now, perform the soft delete.
     customer = await db.get(Customer, customer_id)
     if not customer or not customer.is_active:
         raise HTTPException(status_code=404, detail="Customer not found")
     customer.is_active = False
     customer.updated_by = user_id
     await db.commit()
-    await db.refresh(customer)
-    return CustomerResponse(message="Customer deleted successfully", data=CustomerOut.from_orm(customer))
+
+    response.message = "Customer deleted successfully"
+    return response

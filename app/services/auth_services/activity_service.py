@@ -50,4 +50,4 @@ async def get_user_activities(
         return total, activities
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch activities: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to fetch activities.")
