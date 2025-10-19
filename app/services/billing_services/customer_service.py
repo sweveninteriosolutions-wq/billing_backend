@@ -60,7 +60,7 @@ async def create_customer(db: AsyncSession, customer_data, user_id: int) -> Cust
 
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"An unexpected error occurred while creating the customer.")
 
 
 # GET SINGLE CUSTOMER
