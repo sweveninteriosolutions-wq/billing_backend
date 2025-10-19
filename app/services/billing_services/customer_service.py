@@ -188,11 +188,16 @@ async def update_customer(db: AsyncSession, customer_id: int, data: dict, user_i
 
 # SOFT DELETE CUSTOMER
 async def delete_customer(db: AsyncSession, customer_id: int, user_id: int) -> CustomerResponse:
+    # Get the full customer object before deletion to ensure a consistent response.
+    response = await get_customer(db, customer_id)
+
+    # Now, perform the soft delete.
     customer = await db.get(Customer, customer_id)
     if not customer or not customer.is_active:
         raise HTTPException(status_code=404, detail="Customer not found")
     customer.is_active = False
     customer.updated_by = user_id
     await db.commit()
-    await db.refresh(customer)
-    return CustomerResponse(message="Customer deleted successfully", data=CustomerOut.from_orm(customer))
+
+    response.message = "Customer deleted successfully"
+    return response
