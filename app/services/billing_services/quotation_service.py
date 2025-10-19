@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 # Helper: Generate unique quotation number
 # --------------------------
 async def generate_quotation_number(db: AsyncSession) -> str:
-    today_str = datetime.utcnow().strftime("%Y%m%d")
+    today_str = datetime.now(timezone.utc).strftime("%Y%m%d")
     result = await db.execute(select(func.max(Quotation.id)))
     last_id = result.scalar() or 0
     sequence_number = last_id + 1
