@@ -44,8 +44,8 @@ async def create_quotation(db: AsyncSession, data: QuotationCreate, current_user
     items = data.items  # list of QuotationItemCreate
 
     customer = await db.get(Customer, customer_id)
-    if not customer or customer.is_active:
-        raise HTTPException(status_code=404, detail=f"Customer {customer_id} not found")
+    if not customer or not customer.is_active:
+        raise HTTPException(status_code=404, detail=f"Customer {customer_id} not found or is inactive")
 
     quotation_number = await generate_quotation_number(db)
 
