@@ -1,6 +1,6 @@
 # app/schemas/quotation_schemas.py
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict
 from datetime import datetime
 from decimal import Decimal
 
@@ -32,14 +32,14 @@ class QuotationItemUpdate(BaseModel):
 # Quotation Schemas
 # --------------------------
 class QuotationCreate(BaseModel):
-    customer_id: int                   # Mandatory
-    items: List[QuotationItemCreate]   # Mandatory
-    notes: Optional[str] = None        # Optional
-    description: Optional[str] = None  # Optional
-    additional_data: Optional[dict] = None  # Optional
+    customer_id: int                     # Mandatory
+    items: List[QuotationItemCreate]     # Mandatory
+    notes: Optional[str] = None          # Optional
+    description: Optional[str] = None    # Optional
+    additional_data: Optional[Dict] = None  # Optional, more explicit than dict
 
 class QuotationUpdate(BaseModel):
-    customer_id: Optional[int] = None        # allows reassigning to another customer
+    customer_id: Optional[int] = None          # allows reassigning to another customer
     notes: Optional[str] = None
     description: Optional[str] = None
     items: Optional[List[QuotationItemUpdate]] = None  # allow updating quantities or products
@@ -47,7 +47,6 @@ class QuotationUpdate(BaseModel):
     moved_to_sales: Optional[bool] = None
     moved_to_invoice: Optional[bool] = None
     is_deleted: Optional[bool] = None
-        
 
 class QuotationOut(BaseModel):
     id: int
@@ -55,10 +54,10 @@ class QuotationOut(BaseModel):
     customer_id: int
     description: Optional[str]
     notes: Optional[str]
-    total_amount: Decimal
-    gst_amount: Decimal
     total_items_amount: Decimal
-    additional_data: Optional[dict]
+    gst_amount: Decimal
+    total_amount: Decimal
+    additional_data: Optional[Dict] = None
     approved: bool
     moved_to_sales: bool
     moved_to_invoice: bool
