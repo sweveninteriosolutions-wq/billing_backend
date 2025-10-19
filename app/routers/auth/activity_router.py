@@ -38,5 +38,5 @@ async def list_user_activities(
     return UserActivityListResponse(
         message="User activities fetched successfully",
         total=total,
-        data=[UserActivityOut.from_orm(a) for a in activities]
+        data=[UserActivityOut.model_validate(a) for a in activities]
     )
