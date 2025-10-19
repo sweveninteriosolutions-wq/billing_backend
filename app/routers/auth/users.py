@@ -24,7 +24,7 @@ async def create_user_route(
     db: AsyncSession = Depends(get_db),
     _user = Depends(get_current_user)
 ):
-    new_user = await create_user(db, user_data)
+    new_user = await create_user(db, user_data, _user)
     return {"msg": f"User '{new_user.username}' created successfully.", "data": new_user}
 
 
@@ -54,7 +54,7 @@ async def get_user_route(user_id: int, db: AsyncSession = Depends(get_db), _user
 @router.put("/{user_id}", response_model=UserResponse)
 @require_role(["admin"])
 async def update_user_route(user_id: int, user_data: UserUpdate, db: AsyncSession = Depends(get_db), _user = Depends(get_current_user)):
-    updated_user = await update_user(db, user_id, user_data)
+    updated_user = await update_user(db, user_id, user_data, _user )
     return {"msg": f"User '{updated_user.username}' updated successfully.", "data": updated_user}
 
 
@@ -64,5 +64,5 @@ async def update_user_route(user_id: int, user_data: UserUpdate, db: AsyncSessio
 @router.delete("/{user_id}", response_model=MessageResponse)
 @require_role(["admin"])
 async def delete_user_route(user_id: int, db: AsyncSession = Depends(get_db), _user = Depends(get_current_user)):
-    deleted_user = await delete_user(db, user_id)
+    deleted_user = await delete_user(db, user_id, _user)
     return {"msg": f"User '{deleted_user.username}' deleted successfully."}
