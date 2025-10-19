@@ -8,7 +8,7 @@ from sqlalchemy import asc, desc
 
 from app.models.billing_models.customer_models import Customer
 from app.models.user_models import User  # Assuming User model exists
-from app.schemas.billing_schemas.customer_schema import CustomerOut, CustomerResponse, CustomerListResponse
+from app.schemas.billing_schemas.customer_schema import CustomerOut, CustomerResponse, CustomerListResponse, CustomerCreate
 
 from sqlalchemy.orm import aliased
 
