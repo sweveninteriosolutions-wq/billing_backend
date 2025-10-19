@@ -8,8 +8,7 @@ from app.models.billing_models.customer_models import Customer
 from app.models.user_models import User  # Assuming User model exists
 from app.schemas.billing_schemas.customer_schema import CustomerOut, CustomerResponse, CustomerListResponse
 
-# CREATE CUSTOMERfrom sqlalchemy.orm import aliased
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm import aliased
 
 async def create_customer(db: AsyncSession, customer_data: CustomerCreate, user_id: int) -> CustomerResponse:
     try:
