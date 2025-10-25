@@ -50,6 +50,13 @@ class Quotation(Base):
         lazy="joined"
     )
 
+    sales_orders = relationship(
+        "SalesOrder",
+        back_populates="quotation",
+        cascade="all, delete-orphan",
+        lazy="selectin"
+    )
+
     # ----------------------
     # Total calculation
     # ----------------------

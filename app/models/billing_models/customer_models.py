@@ -25,3 +25,11 @@ class Customer(Base):
         cascade="all, delete-orphan",
         lazy="joined"
     )
+
+        # Add this to fix SalesOrder back_populates
+    sales_orders = relationship(
+        "SalesOrder",
+        back_populates="customer",
+        cascade="all, delete-orphan",
+        lazy="selectin"
+    )
