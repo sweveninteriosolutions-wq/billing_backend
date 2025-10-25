@@ -41,18 +41,12 @@ async def get_order(order_id: int, db: AsyncSession = Depends(get_db)):
 @router.get("/customer/{customer_id}", response_model=list[SalesOrderResponse])
 async def get_orders_by_customer(customer_id: int, db: AsyncSession = Depends(get_db)):
     orders = await get_sales_orders_by_customer(db, customer_id)
-    if not orders:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=404, detail=f"No sales orders found for customer ID {customer_id}")
     return orders
 
 # GET work status by order ID
 @router.get("/{order_id}/status", response_model=SalesOrderResponse)
 async def get_work_status(order_id: int, db: AsyncSession = Depends(get_db)):
     order = await get_work_status_by_order_id(db, order_id)
-    if not order:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=404, detail=f"Work status not found for order ID {order_id}")
     return order
 
 # POST create from quotation

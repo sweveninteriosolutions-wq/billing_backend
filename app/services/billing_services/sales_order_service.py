@@ -35,11 +35,11 @@ async def create_sales_order_from_quotation(db: AsyncSession, quotation_id: int)
             "product_id": item.product_id,
             "product_name": item.product_name,
             "quantity": item.quantity,
-            "unit_price": float(item.unit_price),
-            "total_price": float(item.total),
+            "unit_price": item.unit_price,
+            "total_price": item.total,
         } for item in quotation.items],
         completion_status=[{
-            "date": datetime.utcnow().isoformat(),
+            "date": datetime.now(timezone.utc).isoformat(),
             "status": "arrived_from_quotation",
             "note": "Order received from quotation",
         }]
@@ -67,7 +67,7 @@ async def approve_order(db: AsyncSession, order_id: int) -> SalesOrderResponse:
         raise HTTPException(status_code=400, detail="Order not completed yet")
 
     if order.approved:
-        raise HTTPException(status_code=405, detail="Order already approved")
+        raise HTTPException(status_code=409, detail="Order already approved")
 
     order.approved = True
     db.add(order)
@@ -89,7 +89,7 @@ async def update_work_status(db: AsyncSession, order_id: int, status: str, note:
         raise HTTPException(status_code=404, detail="Order not found")
 
     if order.completion_flag:
-        raise HTTPException(status_code=405, detail="Cannot update work status of a completed order")
+        raise HTTPException(status_code=409, detail="Cannot update work status of a completed order")
 
     order.completion_status.append({
         "date": datetime.now(timezone.utc).isoformat(),
@@ -116,7 +116,7 @@ async def mark_sales_order_complete_service(db: AsyncSession, order_id: int) -> 
         raise HTTPException(status_code=404, detail="Order not found")
 
     if order.completion_flag:
-        raise HTTPException(status_code=405, detail="Sales order is already marked as complete")
+        raise HTTPException(status_code=409, detail="Sales order is already marked as complete")
 
     order.completion_flag = True
     order.completion_status.append({
@@ -150,7 +150,7 @@ async def move_sales_order_to_invoice(db: AsyncSession, order_id: int) -> SalesO
         raise HTTPException(status_code=400, detail="Order not approved yet")
 
     if order.moved_to_invoice:
-        raise HTTPException(status_code=405, detail="Order already moved to invoice")
+        raise HTTPException(status_code=409, detail="Order already moved to invoice")
 
     order.moved_to_invoice = True
     db.add(order)
@@ -189,7 +189,7 @@ async def get_approved_or_moved_quotations(db: AsyncSession) -> dict:
         for q in quotations
     ]
 
-    return {"message": "Approved or moved quotations retrieved", "Data": quotations_data}
+    return {"message": "Approved or moved quotations retrieved", "data": quotations_data}
 
 # =====================================================
 # 🔹 GET SALES ORDER BY ID
@@ -215,15 +215,6 @@ async def get_all_sales_orders(db: AsyncSession) -> list[SalesOrderResponse]:
     if not orders:
         raise HTTPException(status_code=404, detail="No sales orders found")
     return [SalesOrderResponse.model_validate(o, from_attributes=True) for o in orders]
-
-
-from fastapi import HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from sqlalchemy.orm import selectinload
-
-from app.models.billing_models.sales_order_models import SalesOrder
-
 
 # =====================================================
 # 🔹 RETRIEVAL SERVICES WITH PROPER HTTP CODES

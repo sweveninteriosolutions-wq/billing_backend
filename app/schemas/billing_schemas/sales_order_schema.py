@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 from datetime import datetime
 from decimal import Decimal
@@ -19,8 +19,8 @@ class SalesOrderItemResponse(BaseModel):
     product_id: int
     product_name: str
     quantity: int
-    unit_price: float
-    total_price: float
+    unit_price: Decimal
+    total_price: Decimal
 
     model_config = {"from_attributes": True}
 
@@ -74,7 +74,7 @@ class QuotationDetailResponse(BaseModel):
 
 class QuotationDetailMessageResponse(BaseModel):
     message: str
-    Data: Optional[List[QuotationDetailResponse]] = None
+    data: Optional[List[QuotationDetailResponse]] = None
 
 
 class QuotationStatusResponse(BaseModel):
@@ -105,7 +105,7 @@ class SalesOrderListResponse(BaseModel):
 
 class SalesOrderListMessage(BaseModel):
     message: str
-    Data: Optional[List[SalesOrderListResponse]] = None
+    data: Optional[List[SalesOrderListResponse]] = None
 
 
 # =====================================================
@@ -130,7 +130,7 @@ class SalesOrderResponse(BaseModel):
 
 class SalesOrderMessageResponse(BaseModel):
     message: str
-    Data: Optional[SalesOrderResponse] = None
+    data: Optional[List[QuotationDetailResponse]] = None
 
 
 # =====================================================
@@ -138,7 +138,7 @@ class SalesOrderMessageResponse(BaseModel):
 # =====================================================
 class SalesOrderMessage(BaseModel):
     message: str
-    date: datetime = datetime.utcnow()
+    date: datetime = Field(default_factory=datetime.utcnow)
 
 
 # =====================================================

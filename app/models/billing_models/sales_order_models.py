@@ -4,7 +4,6 @@ from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, JSON, DateT
 from sqlalchemy.orm import relationship
 from app.core.db import Base
 from sqlalchemy.ext.mutable import MutableList
-from sqlalchemy import JSON
 
 class SalesOrder(Base):
     __tablename__ = "sales_orders"
