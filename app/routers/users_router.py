@@ -7,7 +7,7 @@ from app.schemas.user_schemas import (
 )
 from app.utils.get_user import get_current_user
 from app.utils.check_roles import require_role
-from app.services.auth_services.user_service import (
+from app.services.user_service import (
     create_user, list_users, get_user_by_id, update_user,
     delete_user
 )

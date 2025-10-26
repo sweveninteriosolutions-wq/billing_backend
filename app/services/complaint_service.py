@@ -7,11 +7,12 @@ from app.utils.activity_helpers import log_user_activity
 async def create_complaint(db: AsyncSession, complaint_data, _user):
     complaint = Complaint(**complaint_data.dict(), created_by=_user.id)
     db.add(complaint)
+    await db.flush()
     await log_user_activity(
         db=db,
         user_id=_user.id,
         username=_user.username,
-        message=f"Soft-deleted complaint ID {complaint.id} by user '{_user.username}'"
+        message=f"Created complaint with title '{complaint.title}' (ID: {complaint.id}) by user '{_user.username}'"
     )
     await db.commit()
     await db.refresh(complaint)

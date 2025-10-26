@@ -9,7 +9,7 @@ from app.schemas.quotation_schema import (
     QuotationCreate,
     QuotationUpdate
 )
-from app.services.billing_services.quotation_service import (
+from app.services.quotation_service import (
     create_quotation,
     get_quotation,
     list_quotations,
@@ -24,7 +24,7 @@ from app.services.billing_services.quotation_service import (
 from app.utils.get_user import get_current_user
 from app.utils.check_roles import require_role
 
-router = APIRouter(prefix="/quotations", tags=["Quotations"])
+router = APIRouter(prefix="/billing/quotations", tags=["Quotations"])
 
 
 # --------------------------

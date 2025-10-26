@@ -7,7 +7,7 @@ from app.schemas.sales_order_schema import (
     SalesOrderStatusUpdate,
     QuotationDetailMessageResponse
 )
-from app.services.billing_services.sales_order_service import (
+from app.services.sales_order_service import (
     create_sales_order_from_quotation,
     approve_order,
     update_work_status,
@@ -22,7 +22,7 @@ from app.services.billing_services.sales_order_service import (
 from app.utils.get_user import get_current_user
 from app.utils.check_roles import require_role
 
-router = APIRouter(prefix="/sales_orders", tags=["Sales Orders"])
+router = APIRouter(prefix="/billing/sales_orders", tags=["Sales Orders"])
 
 # GET approved or moved quotations
 @require_role(["admin", "cashier"])

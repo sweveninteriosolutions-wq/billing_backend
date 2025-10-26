@@ -21,7 +21,7 @@ async def create_customer(db: AsyncSession, customer_data: CustomerCreate, curre
         customer_dict["updated_by"] = current_user.id
         customer = Customer(**customer_dict)
         db.add(customer)
-
+        await db.flush()
         await log_user_activity(
                 db,
                 user_id=current_user.id,

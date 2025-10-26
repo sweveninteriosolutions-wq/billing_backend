@@ -3,12 +3,12 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
-from app.services.inventory_services.grn_service import create_grn, verify_grn, get_all_grns, delete_grn
+from app.services.grn_service import create_grn, verify_grn, get_all_grns, delete_grn
 from app.schemas.inventory_schemas import GRNCreate, GRNCreateResponse, GRNListResponse, MessageResponse
 from app.utils.get_user import get_current_user
 from app.utils.check_roles import require_role
 
-router = APIRouter(prefix="/grns", tags=["GRNs CRUD"])
+router = APIRouter(prefix="/inventory/grns", tags=["GRNs CRUD"])
 
 # ---------------------------
 # CREATE GRN

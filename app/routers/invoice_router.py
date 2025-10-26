@@ -7,14 +7,14 @@ from decimal import Decimal
 from typing import List
 from app.schemas.invoice_schemas import (InvoiceCreate, InvoiceResponse, PaymentCreate,
                                         DiscountApply, ApproveResponse, ReadyToInvoiceResponse,Approve, PaymentResponse)
-from app.services.billing_services.invoice_service import (create_invoice, get_all_invoices, get_invoice_by_id,
+from app.services.invoice_service import (create_invoice, get_all_invoices, get_invoice_by_id,
                                     get_invoices_by_customer, apply_discount, approve_invoice,
                                     get_final_bill, add_payment, award_loyalty_for_invoice, get_ready_to_invoice)
 from app.utils.get_user import get_current_user
 from app.utils.activity_helpers import log_user_activity
 from app.utils.check_roles import require_role
 
-router = APIRouter(tags=["Invoice"]) 
+router = APIRouter(prefix="/billing", tags=["Invoice"]) 
 
 # GET /billing/invoices/available
 @router.get("/invoices/ready", response_model=ReadyToInvoiceResponse)
@@ -106,7 +106,7 @@ async def route_add_payment(invoice_id: int, payload: PaymentCreate, db: AsyncSe
     try:
         # award_loyalty_for_invoice will be executed in a transaction; since add_payment already committed,
         # we call award which will start its own transaction.
-        await award_loyalty_for_invoice(db, invoice_id=invoice_id)
+        await award_loyalty_for_invoice(_user, db, invoice_id=invoice_id)
                 # ✅ Logging activity
         await log_user_activity(
             db=db,
