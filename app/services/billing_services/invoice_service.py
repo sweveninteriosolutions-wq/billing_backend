@@ -3,14 +3,14 @@ from sqlalchemy import select, update, or_, not_, exists
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from decimal import Decimal
-from app.models.billing_models.invoice_models import Invoice, Payment, LoyaltyToken, InvoiceStatus
+from app.models.invoice_models import Invoice, Payment, LoyaltyToken, InvoiceStatus
 from app.utils.decimal_utils import to_decimal
 import datetime
 import random
 import string
-from app.models.billing_models import SalesOrder, Quotation
+from app.models import SalesOrder, Quotation
 from sqlalchemy.orm import selectinload
-from app.schemas.billing_schemas.invoice_schemas import InvoiceResponse, Approve
+from app.schemas.invoice_schemas import InvoiceResponse, Approve
 
 async def _generate_invoice_number(session: AsyncSession, prefix="INV"):
     # quick generator, small random suffix; collisions handled by retry

@@ -2,7 +2,7 @@ from pydantic import BaseModel, Field, EmailStr
 from typing import List, Optional
 from datetime import datetime
 from pydantic import field_validator
-from app.models.inventory_models import LocationEnum
+from app.models.product_models import LocationEnum
 
 
 # --------------------------

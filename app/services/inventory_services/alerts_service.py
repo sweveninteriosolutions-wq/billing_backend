@@ -4,7 +4,7 @@ from sqlalchemy.future import select
 from sqlalchemy import or_
 from typing import List
 
-from app.models.inventory_models import Product
+from app.models.product_models import Product
 from app.schemas.inventory_schemas import StockAlert
 from app.utils.activity_helpers import log_user_activity
 

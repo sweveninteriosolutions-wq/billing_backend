@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.exc import IntegrityError, DataError
 
-from app.models.inventory_models import Supplier
+from app.models.supplier_models import Supplier
 from app.schemas.inventory_schemas import SupplierCreate, SupplierUpdate, SupplierOut
 from app.utils.activity_helpers import log_user_activity
 

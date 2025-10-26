@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
-from app.schemas.billing_schemas.quotation_schema import (
+from app.schemas.quotation_schema import (
     QuotationResponse,
     QuotationListResponse,
     QuotationCreate,

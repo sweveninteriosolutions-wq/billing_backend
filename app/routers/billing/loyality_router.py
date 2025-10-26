@@ -3,8 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from app.services.billing_services.invoice_service import award_loyalty_for_invoice
-from app.models.billing_models.invoice_models import LoyaltyToken
-from app.schemas.billing_schemas.invoice_schemas import LoyaltyTokenResponse, LoyaltySummaryResponse
+from app.models.invoice_models import LoyaltyToken
+from app.schemas.invoice_schemas import LoyaltyTokenResponse, LoyaltySummaryResponse
 from app.core.db import get_db
 from app.services.billing_services.invoice_service import get_invoice_by_id
 from sqlalchemy import select

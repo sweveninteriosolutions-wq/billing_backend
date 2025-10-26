@@ -4,7 +4,8 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.models.inventory_models import Product, StockTransfer
+from app.models.stock_transfer_models import StockTransfer
+from app.models.product_models import Product
 from app.schemas.inventory_schemas import TransferCreate, TransferUpdate, TransferOut
 from app.utils.activity_helpers import log_user_activity
 

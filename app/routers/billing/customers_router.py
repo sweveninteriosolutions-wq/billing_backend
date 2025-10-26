@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.schemas.billing_schemas.customer_schema import (
+from app.schemas.customer_schema import (
     CustomerCreate, CustomerUpdate,
     CustomerResponse, CustomerListResponse
 )

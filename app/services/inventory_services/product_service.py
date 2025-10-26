@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from typing import List
 
-from app.models.inventory_models import Product
+from app.models.product_models import Product
 from app.schemas.inventory_schemas import ProductCreate, ProductUpdate, ProductOut
 from app.utils.activity_helpers import log_user_activity
 

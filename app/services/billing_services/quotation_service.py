@@ -8,10 +8,10 @@ from datetime import datetime
 from typing import List, Dict, Any, Optional
 from typing import List, Dict, Any, Optional
 
-from app.models.billing_models.quotation_models import Quotation, QuotationItem
-from app.models.billing_models.customer_models import Customer
-from app.models.inventory_models import Product
-from app.schemas.billing_schemas.quotation_schema import (
+from app.models.quotation_models import Quotation, QuotationItem
+from app.models.customer_models import Customer
+from app.models.product_models import Product
+from app.schemas.quotation_schema import (
     QuotationResponse,
     QuotationOut,
     QuotationListResponse,
