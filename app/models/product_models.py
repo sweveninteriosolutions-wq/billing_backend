@@ -1,8 +1,6 @@
 from sqlalchemy import Column, Integer, String, Float, Boolean, CheckConstraint, Index
 from sqlalchemy.orm import relationship
 from app.core.db import Base
-from .stock_transfer_models import StockTransfer  # optional if needed for type hints
-from .grn_models import GRNItem  # optional if needed
 import enum
 
 # --------------------------
@@ -29,11 +27,9 @@ class Product(Base):
         CheckConstraint(price >= 0, name="check_product_price_non_negative"),
         CheckConstraint(quantity_showroom >= 0, name="check_quantity_showroom_non_negative"),
         CheckConstraint(quantity_warehouse >= 0, name="check_quantity_warehouse_non_negative"),
+        Index("ix_product_name_category", name, category),
     )
-
+    
     grn_items = relationship("GRNItem", back_populates="product")
     stock_transfers = relationship("StockTransfer", back_populates="product")
-
-# Index
-Index("ix_product_name_category", Product.name, Product.category)
 

@@ -1,5 +1,7 @@
- 
-from sqlalchemy import Column, Integer, String, Float, Text, ForeignKey, DateTime, Boolean, CheckConstraint
+from sqlalchemy import (
+    Column, Integer, String, Float, Text, ForeignKey,
+    DateTime, Boolean, CheckConstraint, Index
+)
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.db import Base
@@ -26,6 +28,9 @@ class GRN(Base):
     creator = relationship("User", foreign_keys=[created_by], lazy="selectin")
     verifier = relationship("User", foreign_keys=[verified_by], lazy="selectin")
 
+    __table_args__ = (
+        Index("ix_grn_supplier_status", "supplier_id", "status"),
+    )
 
 class GRNItem(Base):
     __tablename__ = "grn_items"
@@ -45,7 +50,3 @@ class GRNItem(Base):
 
     grn = relationship("GRN", back_populates="items")
     product = relationship("Product", back_populates="grn_items")
-
-# Index
-from sqlalchemy import Index
-Index("ix_grn_supplier_status", GRN.supplier_id, GRN.status)

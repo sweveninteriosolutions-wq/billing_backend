@@ -1,5 +1,5 @@
  
-from sqlalchemy import Column, Integer, Enum, String, ForeignKey, DateTime, Boolean, CheckConstraint
+from sqlalchemy import Column, Integer, Enum, String, ForeignKey, DateTime, Boolean, CheckConstraint, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.db import Base
@@ -25,13 +25,9 @@ class StockTransfer(Base):
     is_deleted = Column(Boolean, default=False, nullable=False)
 
     __table_args__ = (
-        CheckConstraint(quantity > 0, name="check_transfer_quantity_positive"),
-    )
-
+            CheckConstraint(quantity > 0, name="check_transfer_quantity_positive"),
+            Index("ix_transfer_product_status", product_id, status),
+        )
     product = relationship("Product", back_populates="stock_transfers")
     transfer_user = relationship("User", foreign_keys=[transferred_by], lazy="selectin")
     complete_user = relationship("User", foreign_keys=[completed_by], lazy="selectin")
-
-# Index
-from sqlalchemy import Index
-Index("ix_transfer_product_status", StockTransfer.product_id, StockTransfer.status)

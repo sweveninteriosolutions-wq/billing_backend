@@ -1,4 +1,4 @@
-# app/models/billing_models/complaint_models.py
+# app/models/complaint_models.py
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, Enum as SAEnum
 from sqlalchemy.orm import relationship
@@ -22,7 +22,6 @@ class Complaint(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False)
-     # Add this
     invoice_id = Column(Integer, ForeignKey("invoices.id", ondelete="SET NULL"), nullable=True, index=True)
     sales_order_id = Column(Integer, ForeignKey("sales_orders.id", ondelete="SET NULL"), nullable=True, index=True)
     quotation_id = Column(Integer, ForeignKey("quotations.id", ondelete="SET NULL"), nullable=True, index=True)
@@ -38,7 +37,6 @@ class Complaint(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     is_deleted = Column(Boolean, default=False)
 
-    # ✅ Relationship back to Customer
     customer = relationship("Customer", back_populates="complaints", lazy="joined")
     invoice = relationship("Invoice", back_populates="complaints", lazy="selectin")
     sales_order = relationship("SalesOrder", back_populates="complaints", lazy="selectin")
