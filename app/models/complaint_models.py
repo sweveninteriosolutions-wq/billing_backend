@@ -4,6 +4,19 @@ from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Boolean, J
 from sqlalchemy.orm import relationship
 from app.core.db import Base
 from sqlalchemy.sql import func
+import enum
+from sqlalchemy import Enum as SAEnum
+
+class ComplaintStatus(str, enum.Enum):
+    OPEN = "open"
+    IN_PROGRESS = "in_progress"
+    RESOLVED = "resolved"
+    CLOSED = "closed"
+
+class ComplaintPriority(str, enum.Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
 
 class Complaint(Base):
     __tablename__ = "complaints"
@@ -19,8 +32,8 @@ class Complaint(Base):
     # Complaint details
     title = Column(String, nullable=False)
     description = Column(String, nullable=True)
-    status = Column(String, default="open")  # open, in_progress, resolved, closed
-    priority = Column(String, default="medium")  # low, medium, high
+    status = Column(SAEnum(ComplaintStatus), default=ComplaintStatus.OPEN, nullable=False)
+    priority = Column(SAEnum(ComplaintPriority), default=ComplaintPriority.MEDIUM, nullable=False)
 
     # Audit fields
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)

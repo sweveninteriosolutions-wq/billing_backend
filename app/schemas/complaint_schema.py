@@ -2,23 +2,22 @@
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
+from app.models.complaint_models import ComplaintStatus, ComplaintPriority
 
 class ComplaintBase(BaseModel):
     title: str
     description: Optional[str] = None
-    status: Optional[str] = "open"
-    priority: Optional[str] = "medium"
-
+    status: ComplaintStatus = ComplaintStatus.OPEN
+    priority: ComplaintPriority = ComplaintPriority.MEDIUM
 class ComplaintCreate(ComplaintBase):
     customer_id: int
     invoice_id: Optional[int] = None
     sales_order_id: Optional[int] = None
     quotation_id: Optional[int] = None
-
 class ComplaintUpdate(BaseModel):
-    status: Optional[str]
-    priority: Optional[str]
-    description: Optional[str]
+    status: Optional[ComplaintStatus] = None
+    priority: Optional[ComplaintPriority] = None
+    description: Optional[str] = None
 
 class ComplaintResponse(ComplaintBase):
     id: int
