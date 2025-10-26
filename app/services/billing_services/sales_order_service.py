@@ -33,7 +33,7 @@ async def create_sales_order_from_quotation(db: AsyncSession, quotation_id: int,
         quotation_id=quotation.id,
         customer_id=quotation.customer_id,
         customer_name=quotation.customer.name,
-        quotation_items=[{
+        quotation_snapshot=[{
             "product_id": item.product_id,
             "product_name": item.product_name,
             "quantity": item.quantity,
@@ -212,10 +212,7 @@ async def get_approved_or_moved_quotations(db: AsyncSession, current_user) -> di
         select(Quotation)
         .options(selectinload(Quotation.items), selectinload(Quotation.customer))
         .where(
-            or_(
-                Quotation.approved == True,
-                Quotation.moved_to_sales == True
-            ),
+            Quotation.moved_to_sales == True,
             ~Quotation.id.in_(subquery)
         )
         .order_by(Quotation.updated_at.desc())
