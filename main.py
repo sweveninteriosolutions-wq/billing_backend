@@ -31,7 +31,6 @@ async def health_check():
 app.include_router(auth.router)
 app.include_router(inventory.router)
 app.include_router(billing.router)
-app.include_router(billing.router)
 
 
 @app.on_event("startup")
