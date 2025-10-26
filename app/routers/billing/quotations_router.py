@@ -102,7 +102,7 @@ async def delete_quotation_route(
     db: AsyncSession = Depends(get_db),
     _user=Depends(get_current_user)
 ):
-    return await delete_quotation(db, quotation_id, deleted_by=_user.id)
+    return await delete_quotation(db, quotation_id, _user)
 
 
 # --------------------------
@@ -115,7 +115,7 @@ async def approve_quotation_route(
     db: AsyncSession = Depends(get_db),
     _user=Depends(get_current_user)
 ):
-    return await approve_quotation(db, quotation_id, approved_by=_user.id)
+    return await approve_quotation(db, quotation_id, _user)
 
 
 # --------------------------
@@ -128,7 +128,7 @@ async def move_quotation_to_sales_route(
     db: AsyncSession = Depends(get_db),
     _user=Depends(get_current_user)
 ):
-    return await move_to_sales(db, quotation_id, moved_by=_user.id)
+    return await move_to_sales(db, quotation_id, _user)
 
 
 # --------------------------
@@ -141,7 +141,7 @@ async def move_quotation_to_invoice_route(
     db: AsyncSession = Depends(get_db),
     _user=Depends(get_current_user)
 ):
-    return await move_to_invoice(db, quotation_id, moved_by=_user.id)
+    return await move_to_invoice(db, quotation_id, _user)
 
 
 # --------------------------
@@ -154,4 +154,4 @@ async def delete_quotation_item_route(
     db: AsyncSession = Depends(get_db),
     _user=Depends(get_current_user)
 ):
-    return await delete_quotation_item(db, item_id, deleted_by=_user.id)
+    return await delete_quotation_item(db, item_id, _user)

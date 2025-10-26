@@ -19,7 +19,7 @@ async def create_customer_route(
     db: AsyncSession = Depends(get_db),
     _user=Depends(get_current_user)
 ):
-    return await customer_service.create_customer(db, customer, _user.id)
+    return await customer_service.create_customer(db, customer, _user)
 
 
 # GET SINGLE
@@ -59,7 +59,7 @@ async def update_customer_route(
     db: AsyncSession = Depends(get_db),
     _user=Depends(get_current_user)
 ):
-    return await customer_service.update_customer(db, customer_id, customer.dict(exclude_unset=True), _user.id)
+    return await customer_service.update_customer(db, customer_id, customer.dict(exclude_unset=True), _user)
 
 
 # SOFT DELETE
@@ -70,4 +70,4 @@ async def delete_customer_route(
     db: AsyncSession = Depends(get_db),
     _user=Depends(get_current_user)
 ):
-    return await customer_service.delete_customer(db, customer_id, _user.id)
+    return await customer_service.delete_customer(db, customer_id, _user)
