@@ -1,4 +1,4 @@
-# app/repos/invoice_repo.py
+# app\services\billing_services\invoice_service.py
 from sqlalchemy import select, update, or_, not_, exists
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
@@ -14,7 +14,7 @@ from app.schemas.billing_schemas.invoice_schemas import InvoiceResponse, Approve
 
 async def _generate_invoice_number(session: AsyncSession, prefix="INV"):
     # quick generator, small random suffix; collisions handled by retry
-    ts = datetime.datetime.utcnow().strftime("%Y%m%d%H%M%S")
+    ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d%H%M%S")
     suffix = ''.join(random.choices(string.digits, k=4))
     return f"{prefix}-{ts}-{suffix}"
 

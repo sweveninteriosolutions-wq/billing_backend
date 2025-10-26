@@ -41,9 +41,9 @@ class Invoice(Base):
     # relationships
     payments = relationship("Payment", back_populates="invoice", cascade="all, delete-orphan", lazy="selectin")
     loyalty_tokens = relationship("LoyaltyToken", back_populates="invoice", cascade="all, delete-orphan", lazy="selectin")
-    customer = relationship("Customer", back_populates="invoices", lazy="selectin")
-    quotation = relationship("Quotation", back_populates="invoices", lazy="selectin")
-    sales_order = relationship("SalesOrder", back_populates="invoices", lazy="selectin")
+    customer = relationship("Customer", back_populates="invoices", lazy="joined")
+    quotation = relationship("Quotation", back_populates="invoices", lazy="joined")
+    sales_order = relationship("SalesOrder", back_populates="invoices", lazy="joined")
 
 # keep Payment and LoyaltyToken models in same module or separate as you prefer
 class Payment(Base):

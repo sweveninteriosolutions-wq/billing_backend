@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
-from app.services.billing_services.loyalty_service import award_loyalty_for_invoice
+from app.services.billing_services.invoice_service import award_loyalty_for_invoice
 from app.models.billing_models.invoice_models import LoyaltyToken
 from app.schemas.billing_schemas.invoice_schemas import LoyaltyTokenResponse, LoyaltySummaryResponse
 from app.core.db import get_db
@@ -37,15 +37,12 @@ async def get_loyalty_by_customer(customer_id: int, session: AsyncSession = Depe
     # Convert ORM objects to Pydantic models
     tokens_response = [LoyaltyTokenResponse.model_validate(tok, from_attributes=True) for tok in tokens]
 
-    # Aggregate total tokens and transactions
-    r_total = await session.execute(
-        select(func.coalesce(func.sum(LoyaltyToken.tokens), 0), func.count(LoyaltyToken.id))
-        .where(LoyaltyToken.customer_id == customer_id)
-    )
-    total_tokens, total_transactions = r_total.one()
+    # Aggregate total tokens and transactions in Python
+    total_tokens = sum(tok.tokens for tok in tokens)
+    total_transactions = len(tokens)
 
     return LoyaltySummaryResponse(
-        total_tokens=int(total_tokens),
+        total_tokens=total_tokens,
         total_transactions=total_transactions,
         tokens=tokens_response
     )

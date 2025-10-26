@@ -6,7 +6,7 @@ from app.core.db import get_db
 from decimal import Decimal
 from typing import List
 from app.schemas.billing_schemas.invoice_schemas import (InvoiceCreate, InvoiceResponse, PaymentCreate,
-                                        DiscountApply, ApproveResponse, ReadyToInvoiceResponse,Approve)
+                                        DiscountApply, ApproveResponse, ReadyToInvoiceResponse,Approve, PaymentResponse)
 from app.services.billing_services.invoice_service import (create_invoice, get_all_invoices, get_invoice_by_id,
                                     get_invoices_by_customer, apply_discount, approve_invoice,
                                     get_final_bill, add_payment, award_loyalty_for_invoice, get_ready_to_invoice)
@@ -31,7 +31,7 @@ async def route_create_invoice(payload: InvoiceCreate, db: AsyncSession = Depend
     try:
         invoice = await create_invoice(db, quotation_id=payload.quotation_id, sales_order_id=payload.sales_order_id)
         return invoice
-    except Exception as e:
+    except ValueError  as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 # GET /billing/invoices
@@ -84,7 +84,7 @@ async def route_get_bill(invoice_id: int, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=404, detail=str(e))
 
 # POST /billing/payments/{invoice_id}
-@router.post("/payments/{invoice_id}", response_model=PaymentCreate)
+@router.post("/payments/{invoice_id}", response_model=PaymentResponse)
 async def route_add_payment(invoice_id: int, payload: PaymentCreate, db: AsyncSession = Depends(get_db), user=Depends(get_current_user)):
     # user must be the customer paying; or you can allow admin to add payments on behalf
     try:
