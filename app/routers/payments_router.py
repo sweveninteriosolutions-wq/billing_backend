@@ -2,7 +2,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.services.billing_services.invoice_service import get_all_payments, get_payment_by_id
+from app.services.invoice_service import get_all_payments, get_payment_by_id
 from app.schemas.invoice_schemas import PaymentResponse
 from app.core.db import get_db
 from app.utils.check_roles import require_role

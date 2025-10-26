@@ -7,7 +7,7 @@ from decimal import Decimal
 from typing import List
 from app.schemas.invoice_schemas import (InvoiceCreate, InvoiceResponse, PaymentCreate,
                                         DiscountApply, ApproveResponse, ReadyToInvoiceResponse,Approve, PaymentResponse)
-from app.services.billing_services.invoice_service import (create_invoice, get_all_invoices, get_invoice_by_id,
+from app.services.invoice_service import (create_invoice, get_all_invoices, get_invoice_by_id,
                                     get_invoices_by_customer, apply_discount, approve_invoice,
                                     get_final_bill, add_payment, award_loyalty_for_invoice, get_ready_to_invoice)
 from app.utils.get_user import get_current_user

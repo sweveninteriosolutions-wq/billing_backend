@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
-from app.services.inventory_services.stock_transfer_service import (
+from app.services.stock_transfer_service import (
     create_stock_transfer,
     complete_stock_transfer,
     get_stock_transfer,

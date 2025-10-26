@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
-from app.services.inventory_services.supplier_service import (
+from app.services.supplier_service import (
     create_supplier,
     get_all_suppliers,
     get_supplier,

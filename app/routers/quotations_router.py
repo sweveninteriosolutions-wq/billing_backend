@@ -9,7 +9,7 @@ from app.schemas.quotation_schema import (
     QuotationCreate,
     QuotationUpdate
 )
-from app.services.billing_services.quotation_service import (
+from app.services.quotation_service import (
     create_quotation,
     get_quotation,
     list_quotations,

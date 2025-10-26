@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 from app.core.db import get_db
-from app.services.auth_services.activity_service import get_user_activities
+from app.services.activity_service import get_user_activities
 from app.schemas.activity_schemas import UserActivityOut, UserActivityListResponse
 from app.utils.get_user import get_current_user
 from app.utils.check_roles import require_role

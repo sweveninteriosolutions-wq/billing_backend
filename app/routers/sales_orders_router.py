@@ -7,7 +7,7 @@ from app.schemas.sales_order_schema import (
     SalesOrderStatusUpdate,
     QuotationDetailMessageResponse
 )
-from app.services.billing_services.sales_order_service import (
+from app.services.sales_order_service import (
     create_sales_order_from_quotation,
     approve_order,
     update_work_status,
