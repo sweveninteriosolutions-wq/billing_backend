@@ -117,7 +117,7 @@ class SalesOrderResponse(BaseModel):
     customer_name: str
     quotation_id: int
     quotation: Optional[QuotationInfo] = None
-    quotation_items: List[SalesOrderItemResponse]
+    quotation_snapshot: List[SalesOrderItemResponse]
     completion_status: List[CompletionStatusStep]
     completion_flag: bool
     approved: bool

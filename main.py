@@ -34,6 +34,7 @@ app.include_router(billing.router)
 app.include_router(billing.router)
 
 
+
 @app.on_event("startup")
 async def on_startup():
     await init_models()
