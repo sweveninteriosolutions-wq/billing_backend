@@ -4,9 +4,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_
 from sqlalchemy.orm import selectinload
 
-from app.models.billing_models.sales_order_models import SalesOrder
-from app.models.billing_models.quotation_models import Quotation
-from app.schemas.billing_schemas.sales_order_schema import SalesOrderResponse, QuotationDetailResponse
+from app.models.sales_order_models import SalesOrder
+from app.models.quotation_models import Quotation
+from app.schemas.sales_order_schema import SalesOrderResponse, QuotationDetailResponse
 from app.utils.dec_to_float import decimal_to_float
 from app.utils.activity_helpers import log_user_activity
 

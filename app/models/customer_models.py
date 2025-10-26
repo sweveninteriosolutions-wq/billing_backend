@@ -1,9 +1,9 @@
+# app/models/billing_models/customer_models.py
 from datetime import datetime
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, JSON, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.db import Base
-
 
 class Customer(Base):
     __tablename__ = "customers"
@@ -24,4 +24,6 @@ class Customer(Base):
     invoices = relationship("Invoice", back_populates="customer", cascade="all, delete-orphan", lazy="selectin")
     payments = relationship("Payment", back_populates="customer", cascade="all, delete-orphan", lazy="selectin")
     loyalty_tokens = relationship("LoyaltyToken", back_populates="customer", cascade="all, delete-orphan", lazy="selectin")
-    complaints = relationship("Complaint", back_populates="customer", cascade="all, delete-orphan", lazy="selectin")
+
+    # ✅ Forward reference as string — no import of Complaint here
+    complaints = relationship("Complaint", back_populates="customer", cascade="all, delete-orphan", lazy="joined")

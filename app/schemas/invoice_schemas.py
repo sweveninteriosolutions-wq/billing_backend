@@ -3,7 +3,7 @@ from decimal import Decimal
 from typing import Optional, List
 from datetime import datetime
 from typing_extensions import Annotated
-from app.models.billing_models.invoice_models import InvoiceStatus
+from app.models.invoice_models import InvoiceStatus
 
 # Define reusable constrained Decimal types
 PositiveDecimal = Annotated[Decimal, Field(gt=0, max_digits=14, decimal_places=2)]

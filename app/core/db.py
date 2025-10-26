@@ -51,7 +51,7 @@ def enable_sqlite_foreign_keys(dbapi_connection, connection_record):
     cursor.execute("PRAGMA foreign_keys=ON")
     cursor.close()
 
-import app.models.billing_models
+import app.models
 
 # -----------------------
 # Optional: helper to create all tables (like Django migrate)

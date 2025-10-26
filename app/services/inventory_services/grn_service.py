@@ -5,7 +5,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload
 
-from app.models.inventory_models import Product, Supplier, GRN, GRNItem
+from app.models.grn_models import GRN, GRNItem
+from app.models.product_models import Product
+from app.models.supplier_models import Supplier
+
+
+
+
 from app.schemas.inventory_schemas import GRNCreate, GRNOut
 from app.utils.activity_helpers import log_user_activity
 

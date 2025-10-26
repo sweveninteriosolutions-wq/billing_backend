@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from decimal import Decimal
 from typing import List
-from app.schemas.billing_schemas.invoice_schemas import (InvoiceCreate, InvoiceResponse, PaymentCreate,
+from app.schemas.invoice_schemas import (InvoiceCreate, InvoiceResponse, PaymentCreate,
                                         DiscountApply, ApproveResponse, ReadyToInvoiceResponse,Approve, PaymentResponse)
 from app.services.billing_services.invoice_service import (create_invoice, get_all_invoices, get_invoice_by_id,
                                     get_invoices_by_customer, apply_discount, approve_invoice,

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_db
-from app.schemas.billing_schemas.sales_order_schema import (
+from app.schemas.sales_order_schema import (
     SalesOrderResponse,
     SalesOrderStatusUpdate,
     QuotationDetailMessageResponse
