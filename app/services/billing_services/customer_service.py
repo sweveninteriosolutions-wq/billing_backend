@@ -10,16 +10,24 @@ from app.models.customer_models import Customer
 from app.models.user_models import User  # Assuming User model exists
 from app.schemas.customer_schema import CustomerOut, CustomerResponse, CustomerListResponse, CustomerCreate
 
-from sqlalchemy.orm import aliased
+from app.utils.activity_helpers import log_user_activity
 
-async def create_customer(db: AsyncSession, customer_data: CustomerCreate, user_id: int) -> CustomerResponse:
+
+async def create_customer(db: AsyncSession, customer_data: CustomerCreate, current_user) -> CustomerResponse:
     try:
         # Create customer
         customer_dict = customer_data.dict()
-        customer_dict["created_by"] = user_id
-        customer_dict["updated_by"] = user_id
+        customer_dict["created_by"] = current_user.id
+        customer_dict["updated_by"] = current_user.id
         customer = Customer(**customer_dict)
         db.add(customer)
+
+        await log_user_activity(
+                db,
+                user_id=current_user.id,
+                username=current_user.username,
+                message=f"{current_user.role.capitalize()} created customer '{customer.name}' (ID: {customer.id})"
+            )
         await db.commit()
         await db.refresh(customer)
 
@@ -43,6 +51,9 @@ async def create_customer(db: AsyncSession, customer_data: CustomerCreate, user_
         cust_out = CustomerOut.from_orm(cust)
         cust_out.created_by_name = created_by_name
         cust_out.updated_by_name = updated_by_name
+
+
+
 
         return CustomerResponse(
             message="Customer created successfully",
@@ -91,6 +102,7 @@ async def get_customer(db: AsyncSession, customer_id: int) -> CustomerResponse:
     cust_out.updated_by_name = updated_by_name
 
     return CustomerResponse(message="Customer retrieved successfully", data=cust_out)
+
 
 async def get_all_customers(
     db: AsyncSession,
@@ -170,14 +182,23 @@ async def get_all_customers(
         warning=warning  # Include warning if any
     )
 
+
 # UPDATE CUSTOMER
-async def update_customer(db: AsyncSession, customer_id: int, data: dict, user_id: int) -> CustomerResponse:
+async def update_customer(db: AsyncSession, customer_id: int, data: dict, current_user) -> CustomerResponse:
     customer = await db.get(Customer, customer_id)
     if not customer or not customer.is_active:
         raise HTTPException(status_code=404, detail="Customer not found")
     for key, value in data.items():
         setattr(customer, key, value)
-    customer.updated_by = user_id
+    customer.updated_by = current_user.id
+
+    await log_user_activity(
+            db,
+            user_id=current_user.id,
+            username=current_user.username,
+            message=f"{current_user.role.capitalize()} updated customer '{customer.name}' (ID: {customer.id})"
+        )
+
     await db.commit()
 
     # Reuse get_customer to return a consistent, fully populated object
@@ -187,7 +208,7 @@ async def update_customer(db: AsyncSession, customer_id: int, data: dict, user_i
 
 
 # SOFT DELETE CUSTOMER
-async def delete_customer(db: AsyncSession, customer_id: int, user_id: int) -> CustomerResponse:
+async def delete_customer(db: AsyncSession, customer_id: int, current_user) -> CustomerResponse:
     # Get the full customer object before deletion to ensure a consistent response.
     response = await get_customer(db, customer_id)
 
@@ -196,7 +217,16 @@ async def delete_customer(db: AsyncSession, customer_id: int, user_id: int) -> C
     if not customer or not customer.is_active:
         raise HTTPException(status_code=404, detail="Customer not found")
     customer.is_active = False
-    customer.updated_by = user_id
+    customer.updated_by = current_user.id
+
+
+    await log_user_activity(
+            db,
+            user_id=current_user.id,
+            username=current_user.username,
+            message=f"{current_user.role.capitalize()} deleted customer '{customer.name}' (ID: {customer.id})"
+        )
+
     await db.commit()
 
     response.message = "Customer deleted successfully"

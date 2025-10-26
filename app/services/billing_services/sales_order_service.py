@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_
+from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.models.sales_order_models import SalesOrder
@@ -14,7 +14,7 @@ from app.utils.activity_helpers import log_user_activity
 # =====================================================
 # 🔹 CREATE SALES ORDER
 # =====================================================
-async def create_sales_order_from_quotation(db: AsyncSession, quotation_id: int, current_user) -> SalesOrderResponse:
+async def create_sales_order_from_quotation(db: AsyncSession, quotation_id: int, _user) -> SalesOrderResponse:
     existing_order = await db.execute(select(SalesOrder).where(SalesOrder.quotation_id == quotation_id))
     existing_order = existing_order.scalars().first()
     if existing_order:
@@ -48,24 +48,24 @@ async def create_sales_order_from_quotation(db: AsyncSession, quotation_id: int,
     )
 
     db.add(order)
-    await db.commit()
-    await db.refresh(order)
 
+    # Log BEFORE commit
     await log_user_activity(
         db=db,
-        user_id=current_user.id,
-        username=current_user.username,
+        user_id=_user.id,
+        username=_user.username,
         message=f"Created Sales Order from Quotation '{quotation.quotation_number}' for Customer '{quotation.customer.name}'",
     )
 
-
+    await db.commit()
+    await db.refresh(order)
     return SalesOrderResponse.model_validate(order, from_attributes=True)
 
 
 # =====================================================
 # 🔹 APPROVE SALES ORDER
 # =====================================================
-async def approve_order(db: AsyncSession, order_id: int, current_user) -> SalesOrderResponse:
+async def approve_order(db: AsyncSession, order_id: int, _user) -> SalesOrderResponse:
     result = await db.execute(
         select(SalesOrder).where(SalesOrder.id == order_id).options(selectinload(SalesOrder.quotation))
     )
@@ -75,30 +75,29 @@ async def approve_order(db: AsyncSession, order_id: int, current_user) -> SalesO
 
     if not order.completion_flag:
         raise HTTPException(status_code=400, detail="Order not completed yet")
-
     if order.approved:
         raise HTTPException(status_code=409, detail="Order already approved")
 
     order.approved = True
     db.add(order)
-    await db.commit()
-    await db.refresh(order)
 
+    # Log BEFORE commit
     await log_user_activity(
         db=db,
-        user_id=current_user.id,
-        username=current_user.username,
+        user_id=_user.id,
+        username=_user.username,
         message=f"Approved Sales Order ID {order.id} linked to Quotation '{order.quotation.quotation_number}'",
     )
 
-
+    await db.commit()
+    await db.refresh(order)
     return SalesOrderResponse.model_validate(order, from_attributes=True)
 
 
 # =====================================================
 # 🔹 UPDATE WORK STATUS
 # =====================================================
-async def update_work_status(db: AsyncSession, order_id: int, status: str, note: str, current_user) -> SalesOrderResponse:
+async def update_work_status(db: AsyncSession, order_id: int, status: str, note: str, _user) -> SalesOrderResponse:
     result = await db.execute(
         select(SalesOrder).where(SalesOrder.id == order_id).options(selectinload(SalesOrder.quotation))
     )
@@ -114,33 +113,31 @@ async def update_work_status(db: AsyncSession, order_id: int, status: str, note:
         "status": status,
         "note": note
     })
-
     db.add(order)
-    await db.commit()
-    await db.refresh(order)
 
+    # Log BEFORE commit
     await log_user_activity(
         db=db,
-        user_id=current_user.id,
-        username=current_user.username,
+        user_id=_user.id,
+        username=_user.username,
         message=f"Updated work status for Sales Order ID {order.id} - Status: '{status}', Note: '{note}'",
     )
 
-
+    await db.commit()
+    await db.refresh(order)
     return SalesOrderResponse.model_validate(order, from_attributes=True)
 
 
 # =====================================================
 # 🔹 MARK SALES ORDER COMPLETE
 # =====================================================
-async def mark_sales_order_complete_service(db: AsyncSession, order_id: int, current_user) -> SalesOrderResponse:
+async def mark_sales_order_complete_service(db: AsyncSession, order_id: int, _user) -> SalesOrderResponse:
     result = await db.execute(
         select(SalesOrder).where(SalesOrder.id == order_id).options(selectinload(SalesOrder.quotation))
     )
     order = result.scalars().first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-
     if order.completion_flag:
         raise HTTPException(status_code=409, detail="Sales order is already marked as complete")
 
@@ -150,62 +147,58 @@ async def mark_sales_order_complete_service(db: AsyncSession, order_id: int, cur
         "status": "Completed",
         "note": "Sales order marked as complete."
     })
-
     db.add(order)
-    await db.commit()
-    await db.refresh(order)
 
+    # Log BEFORE commit
     await log_user_activity(
         db=db,
-        user_id=current_user.id,
-        username=current_user.username,
+        user_id=_user.id,
+        username=_user.username,
         message=f"Marked Sales Order ID {order.id} as complete (Quotation: '{order.quotation.quotation_number}')",
     )
 
-
+    await db.commit()
+    await db.refresh(order)
     return SalesOrderResponse.model_validate(order, from_attributes=True)
 
 
 # =====================================================
 # 🔹 MOVE SALES ORDER TO INVOICE
 # =====================================================
-async def move_sales_order_to_invoice(db: AsyncSession, order_id: int, current_user) -> SalesOrderResponse:
+async def move_sales_order_to_invoice(db: AsyncSession, order_id: int, _user) -> SalesOrderResponse:
     result = await db.execute(
         select(SalesOrder).where(SalesOrder.id == order_id).options(selectinload(SalesOrder.quotation))
     )
     order = result.scalars().first()
     if not order:
         raise HTTPException(status_code=404, detail="Order not found")
-
     if not order.completion_flag:
         raise HTTPException(status_code=400, detail="Order not completed yet")
-
     if not order.approved:
         raise HTTPException(status_code=400, detail="Order not approved yet")
-
     if order.moved_to_invoice:
         raise HTTPException(status_code=409, detail="Order already moved to invoice")
 
     order.moved_to_invoice = True
     db.add(order)
-    await db.commit()
-    await db.refresh(order)
 
+    # Log BEFORE commit
     await log_user_activity(
         db=db,
-        user_id=current_user.id,
-        username=current_user.username,
+        user_id=_user.id,
+        username=_user.username,
         message=f"Moved Sales Order ID {order.id} (Quotation: '{order.quotation.quotation_number}') to Invoice stage",
     )
 
-
+    await db.commit()
+    await db.refresh(order)
     return SalesOrderResponse.model_validate(order, from_attributes=True)
 
 
 # =====================================================
 # 🔹 GET APPROVED OR MOVED QUOTATIONS
 # =====================================================
-async def get_approved_or_moved_quotations(db: AsyncSession, current_user) -> dict:
+async def get_approved_or_moved_quotations(db: AsyncSession, _user) -> dict:
     """List approved or moved quotations excluding those with existing sales orders."""
     subquery = select(SalesOrder.quotation_id)
     result = await db.execute(
@@ -218,30 +211,28 @@ async def get_approved_or_moved_quotations(db: AsyncSession, current_user) -> di
         .order_by(Quotation.updated_at.desc())
     )
     quotations = result.scalars().all()
-
     if not quotations:
         raise HTTPException(status_code=404, detail="No approved or moved quotations found")
 
-    # Convert ORM objects to Pydantic models
     quotations_data = [
         QuotationDetailResponse.model_validate(q, from_attributes=True)
         for q in quotations
     ]
 
+    # Log BEFORE commit
     await log_user_activity(
         db=db,
-        user_id=current_user.id,
-        username=current_user.username,
+        user_id=_user.id,
+        username=_user.username,
         message="Fetched list of approved or moved quotations available for creating Sales Orders",
     )
-
 
     return {"message": "Approved or moved quotations retrieved", "data": quotations_data}
 
 # =====================================================
 # 🔹 GET SALES ORDER BY ID
 # =====================================================
-async def get_sales_order_by_id(db: AsyncSession, order_id: int, current_user) -> SalesOrderResponse:
+async def get_sales_order_by_id(db: AsyncSession, order_id: int, _user) -> SalesOrderResponse:
     result = await db.execute(
         select(SalesOrder).where(SalesOrder.id == order_id).options(selectinload(SalesOrder.quotation))
     )
@@ -254,7 +245,7 @@ async def get_sales_order_by_id(db: AsyncSession, order_id: int, current_user) -
 # =====================================================
 # 🔹 GET ALL SALES ORDERS
 # =====================================================
-async def get_all_sales_orders(db: AsyncSession, current_user) -> list[SalesOrderResponse]:
+async def get_all_sales_orders(db: AsyncSession, _user) -> list[SalesOrderResponse]:
     result = await db.execute(
         select(SalesOrder).options(selectinload(SalesOrder.quotation)).order_by(SalesOrder.created_at.desc())
     )
@@ -263,15 +254,11 @@ async def get_all_sales_orders(db: AsyncSession, current_user) -> list[SalesOrde
         raise HTTPException(status_code=404, detail="No sales orders found")
     return [SalesOrderResponse.model_validate(o, from_attributes=True) for o in orders]
 
-# =====================================================
-# 🔹 RETRIEVAL SERVICES WITH PROPER HTTP CODES
-# =====================================================
 
-async def get_sales_orders_by_customer(db: AsyncSession, customer_id: int, current_user):
-    """
-    Fetch all Sales Orders for a specific customer, ordered by creation date.
-    Raises 404 if no orders found.
-    """
+# =====================================================
+# 🔹 RETRIEVAL SERVICES
+# =====================================================
+async def get_sales_orders_by_customer(db: AsyncSession, customer_id: int, _user):
     result = await db.execute(
         select(SalesOrder)
         .options(selectinload(SalesOrder.quotation))
@@ -289,11 +276,7 @@ async def get_sales_orders_by_customer(db: AsyncSession, customer_id: int, curre
     return orders
 
 
-async def get_work_status_by_order_id(db: AsyncSession, order_id: int, current_user):
-    """
-    Fetch a Sales Order by ID and include its quotation and work status.
-    Raises 404 if the order does not exist.
-    """
+async def get_work_status_by_order_id(db: AsyncSession, order_id: int, _user):
     result = await db.execute(
         select(SalesOrder)
         .options(selectinload(SalesOrder.quotation))
@@ -306,13 +289,12 @@ async def get_work_status_by_order_id(db: AsyncSession, order_id: int, current_u
             status_code=404,
             detail=f"Work status not found for order ID {order_id}"
         )
-    
+
     await log_user_activity(
         db=db,
-        user_id=current_user.id,
-        username=current_user.username,
+        user_id=_user.id,
+        username=_user.username,
         message=f"Viewed work status for Sales Order ID {order.id} (Quotation: '{order.quotation.quotation_number}')",
     )
-
 
     return order
