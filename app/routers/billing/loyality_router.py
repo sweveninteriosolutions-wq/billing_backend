@@ -8,10 +8,12 @@ from app.schemas.invoice_schemas import LoyaltyTokenResponse, LoyaltySummaryResp
 from app.core.db import get_db
 from app.services.billing_services.invoice_service import get_invoice_by_id
 from sqlalchemy import select
+from app.utils.check_roles import require_role
 
 router = APIRouter()
 
 @router.get("/loyalty/{token_id}", response_model=LoyaltyTokenResponse, tags=["loyalty"])
+@require_role(["admin", "cashier", "sales"])
 async def get_loyalty_by_id(token_id: int, session: AsyncSession = Depends(get_db)):
     r = await session.execute(select(LoyaltyToken).where(LoyaltyToken.id == token_id))
     tok = r.scalar_one_or_none()
@@ -24,6 +26,7 @@ from typing import List
 from sqlalchemy import func
 
 @router.get("/loyalty/customer/{customer_id}", response_model=LoyaltySummaryResponse, tags=["loyalty"])
+@require_role(["admin", "cashier", "sales"])
 async def get_loyalty_by_customer(customer_id: int, session: AsyncSession = Depends(get_db)):
 
     # Fetch all tokens for customer

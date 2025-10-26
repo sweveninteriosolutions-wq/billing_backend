@@ -12,11 +12,13 @@ from app.services.billing_services.invoice_service import (create_invoice, get_a
                                     get_final_bill, add_payment, award_loyalty_for_invoice, get_ready_to_invoice)
 from app.utils.get_user import get_current_user
 from app.utils.activity_helpers import log_user_activity
+from app.utils.check_roles import require_role
 
 router = APIRouter(tags=["Invoice"]) 
 
 # GET /billing/invoices/available
 @router.get("/invoices/ready", response_model=ReadyToInvoiceResponse)
+@require_role(["admin", "cashier"])
 async def route_get_ready_to_invoice(db: AsyncSession = Depends(get_db)):
     """
     Get all quotations and sales orders that are ready to generate an invoice.
@@ -28,6 +30,7 @@ async def route_get_ready_to_invoice(db: AsyncSession = Depends(get_db)):
 
 # POST /billing/invoices
 @router.post("/invoices", response_model=InvoiceResponse, status_code=201)
+@require_role(["admin", "cashier"])
 async def route_create_invoice(payload: InvoiceCreate, db: AsyncSession = Depends(get_db), _user=Depends(get_current_user)):
     try:
         invoice = await create_invoice(_user, db, quotation_id=payload.quotation_id, sales_order_id=payload.sales_order_id)
@@ -36,6 +39,7 @@ async def route_create_invoice(payload: InvoiceCreate, db: AsyncSession = Depend
         raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/invoices", response_model=List[InvoiceResponse])
+@require_role(["admin", "cashier"])
 async def route_get_all_invoices(limit: int = 100, offset: int = 0, db: AsyncSession = Depends(get_db)):
     invoices = await get_all_invoices(db, limit=limit, offset=offset)
     return invoices
@@ -43,6 +47,7 @@ async def route_get_all_invoices(limit: int = 100, offset: int = 0, db: AsyncSes
 
 # GET /billing/invoices/{invoice_id}
 @router.get("/invoices/{invoice_id}", response_model=InvoiceResponse)
+@require_role(["admin", "cashier"])
 async def route_get_invoice(invoice_id: int, db: AsyncSession = Depends(get_db)):
     invoice = await get_invoice_by_id(db, invoice_id)
     if not invoice:
@@ -51,6 +56,7 @@ async def route_get_invoice(invoice_id: int, db: AsyncSession = Depends(get_db))
 
 # GET /billing/invoices/customer/{customer_id}
 @router.get("/invoices/customer/{customer_id}", response_model=List[InvoiceResponse])
+@require_role(["admin", "cashier"])
 async def route_invoices_by_customer(customer_id: int, db: AsyncSession = Depends(get_db)):
     invoices = await get_invoices_by_customer(db, customer_id)
     return invoices
@@ -58,6 +64,7 @@ async def route_invoices_by_customer(customer_id: int, db: AsyncSession = Depend
 
 # POST /billing/invoices/{invoice_id}/discount
 @router.post("/invoices/{invoice_id}/discount", response_model=InvoiceResponse)
+@require_role(["admin", "cashier"])
 async def route_apply_discount(invoice_id: int, payload: DiscountApply, db: AsyncSession = Depends(get_db), _user=Depends(get_current_user)):
     try:
         inv = await apply_discount(_user, db, invoice_id, payload.discount_amount, note=payload.note)
@@ -66,6 +73,7 @@ async def route_apply_discount(invoice_id: int, payload: DiscountApply, db: Asyn
         raise HTTPException(status_code=400, detail=str(e))
 
 # POST /billing/invoices/{invoice_id}/approve
+@require_role(["admin"])
 @router.post("/invoices/{invoice_id}/approve", response_model=ApproveResponse)
 async def route_approve_invoice(invoice_id: int, payload: Approve, db: AsyncSession = Depends(get_db), _user=Depends(get_current_user)):
     try:
@@ -76,6 +84,7 @@ async def route_approve_invoice(invoice_id: int, payload: Approve, db: AsyncSess
 
 # GET /billing/invoices/{invoice_id}/bill
 @router.get("/invoices/{invoice_id}/bill")
+@require_role(["admin", "cashier"])
 async def route_get_bill(invoice_id: int, db: AsyncSession = Depends(get_db)):
     try:
         bill = await get_final_bill(db, invoice_id)
@@ -85,6 +94,7 @@ async def route_get_bill(invoice_id: int, db: AsyncSession = Depends(get_db)):
 
 # POST /billing/payments/{invoice_id}
 @router.post("/payments/{invoice_id}", response_model=PaymentResponse)
+@require_role(["admin", "cashier"])
 async def route_add_payment(invoice_id: int, payload: PaymentCreate, db: AsyncSession = Depends(get_db), _user=Depends(get_current_user)):
     # user must be the customer paying; or you can allow admin to add payments on behalf
     try:
