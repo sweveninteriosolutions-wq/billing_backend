@@ -58,6 +58,7 @@ class Quotation(Base):
     )
 
     invoices = relationship("Invoice", back_populates="quotation", cascade="all, delete-orphan", lazy="selectin")
+    complaints = relationship("Complaint", back_populates="quotation", cascade="all, delete-orphan", lazy="selectin")
 
     # ----------------------
     # Total calculation

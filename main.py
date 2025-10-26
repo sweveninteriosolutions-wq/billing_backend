@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routers import auth
 from app.routers import inventory
 from app.routers import billing
+from app.routers import complaint_routes
 from app.core.db import Base, engine, init_models
 from app.middleware.activity_logger import ActivityLoggerMiddleware
 
@@ -31,7 +32,7 @@ async def health_check():
 app.include_router(auth.router)
 app.include_router(inventory.router)
 app.include_router(billing.router)
-app.include_router(billing.router)
+app.include_router(complaint_routes.router)
 
 
 

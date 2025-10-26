@@ -32,6 +32,7 @@ class SalesOrder(Base):
     customer = relationship("Customer", back_populates="sales_orders")
     quotation = relationship("Quotation", back_populates="sales_orders")
     invoices = relationship("Invoice", back_populates="sales_order", cascade="all, delete-orphan", lazy="selectin")
+    complaints = relationship("Complaint", back_populates="sales_order", cascade="all, delete-orphan", lazy="selectin")
 
 
     

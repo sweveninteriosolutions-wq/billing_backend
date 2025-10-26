@@ -24,3 +24,4 @@ class Customer(Base):
     invoices = relationship("Invoice", back_populates="customer", cascade="all, delete-orphan", lazy="selectin")
     payments = relationship("Payment", back_populates="customer", cascade="all, delete-orphan", lazy="selectin")
     loyalty_tokens = relationship("LoyaltyToken", back_populates="customer", cascade="all, delete-orphan", lazy="selectin")
+    complaints = relationship("Complaint", back_populates="customer", cascade="all, delete-orphan", lazy="selectin")
