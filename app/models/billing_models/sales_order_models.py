@@ -13,7 +13,7 @@ class SalesOrder(Base):
     # Foreign keys
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False)
     quotation_id = Column(Integer, ForeignKey("quotations.id"), nullable=False)
-    quotation_items = Column(JSON, nullable=True)  # <-- make sure this column exists
+    quotation_snapshot = Column(JSON, nullable=True)
 
     # Snapshot info
     customer_name = Column(String, nullable=True)  # snapshot of customer name at order creation
@@ -31,4 +31,7 @@ class SalesOrder(Base):
     # Relationships
     customer = relationship("Customer", back_populates="sales_orders")
     quotation = relationship("Quotation", back_populates="sales_orders")
+    invoices = relationship("Invoice", back_populates="sales_order", cascade="all, delete-orphan", lazy="selectin")
+
+
     

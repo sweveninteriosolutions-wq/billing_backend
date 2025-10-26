@@ -352,7 +352,6 @@ async def approve_quotation(db: AsyncSession, quotation_id: int, approved_by: Op
         data=QuotationOut.from_orm(quotation)
     )
 
-
 # --------------------------
 # MOVE QUOTATION TO SALES
 # --------------------------
@@ -360,8 +359,14 @@ async def move_to_sales(db: AsyncSession, quotation_id: int, moved_by: Optional[
     quotation = await db.get(Quotation, quotation_id)
     if not quotation or quotation.is_deleted:
         raise HTTPException(status_code=404, detail="Quotation not found")
+    
+    # Prevent moving if already moved to invoice
+    if quotation.moved_to_invoice:
+        raise HTTPException(status_code=400, detail="Quotation already moved to invoice, cannot move to sales order")
+    
     if quotation.moved_to_sales:
         raise HTTPException(status_code=400, detail="Quotation already moved to sales order")
+    
     if not quotation.approved:
         raise HTTPException(status_code=400, detail="Quotation must be approved before moving to sales")
 
@@ -383,10 +388,16 @@ async def move_to_invoice(db: AsyncSession, quotation_id: int, moved_by: Optiona
     quotation = await db.get(Quotation, quotation_id)
     if not quotation or quotation.is_deleted:
         raise HTTPException(status_code=404, detail="Quotation not found")
+    
+    # Prevent moving if already moved to sales
+    if quotation.moved_to_sales:
+        raise HTTPException(status_code=400, detail="Quotation already moved to sales order, cannot move to invoice")
+    
     if quotation.moved_to_invoice:
         raise HTTPException(status_code=400, detail="Quotation already moved to invoice")
+    
     if not quotation.approved:
-        raise HTTPException(status_code=400, detail="Quotation must be approved or moved to sales before invoicing")
+        raise HTTPException(status_code=400, detail="Quotation must be approved before invoicing")
 
     quotation.moved_to_invoice = True
     quotation.updated_by = moved_by

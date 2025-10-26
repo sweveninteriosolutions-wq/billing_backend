@@ -57,6 +57,8 @@ class Quotation(Base):
         lazy="selectin"
     )
 
+    invoices = relationship("Invoice", back_populates="quotation", cascade="all, delete-orphan", lazy="selectin")
+
     # ----------------------
     # Total calculation
     # ----------------------
