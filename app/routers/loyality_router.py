@@ -10,7 +10,7 @@ from app.services.billing_services.invoice_service import get_invoice_by_id
 from sqlalchemy import select
 from app.utils.check_roles import require_role
 
-router = APIRouter()
+router = APIRouter(prefix="/billing")
 
 @router.get("/loyalty/{token_id}", response_model=LoyaltyTokenResponse, tags=["loyalty"])
 @require_role(["admin", "cashier", "sales"])

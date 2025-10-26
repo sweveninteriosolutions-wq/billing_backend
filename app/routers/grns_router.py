@@ -8,7 +8,7 @@ from app.schemas.inventory_schemas import GRNCreate, GRNCreateResponse, GRNListR
 from app.utils.get_user import get_current_user
 from app.utils.check_roles import require_role
 
-router = APIRouter(prefix="/grns", tags=["GRNs CRUD"])
+router = APIRouter(prefix="/inventory/grns", tags=["GRNs CRUD"])
 
 # ---------------------------
 # CREATE GRN

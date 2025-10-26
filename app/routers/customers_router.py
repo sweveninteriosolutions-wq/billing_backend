@@ -9,7 +9,7 @@ from app.core.db import get_db
 from app.utils.get_user import get_current_user
 from app.utils.check_roles import require_role
 
-router = APIRouter(prefix="/customers", tags=["Customers"])
+router = APIRouter(prefix="/billing/customers", tags=["Customers"])
 
 # CREATE
 @router.post("/", response_model=CustomerResponse)

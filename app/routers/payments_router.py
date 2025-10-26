@@ -8,7 +8,7 @@ from app.core.db import get_db
 from app.utils.check_roles import require_role
 
 
-router = APIRouter()
+router = APIRouter(prefix="/billing")
 
 @router.get("/payments", response_model=List[PaymentResponse], tags=["Payments"])
 @require_role(["admin", "cashier"])

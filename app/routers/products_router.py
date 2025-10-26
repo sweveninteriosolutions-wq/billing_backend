@@ -1,88 +1,86 @@
-# app/routers/inventory_routes/supplier_router.py
+# app/routers/inventory_routes/product_router.py
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.core.db import get_db
-from app.services.inventory_services.supplier_service import (
-    create_supplier,
-    get_all_suppliers,
-    get_supplier,
-    update_supplier,
-    delete_supplier,
+from app.services.inventory_services.product_service import (
+    create_product,
+    get_all_products,
+    get_product,
+    update_product,
+    delete_product,
 )
 from app.schemas.inventory_schemas import (
-    SupplierCreate,
-    SupplierUpdate,
-    SupplierCreateResponse,
-    SupplierListResponse,
+    ProductCreate,
+    ProductUpdate,
+    ProductResponse,
+    ProductListResponse,
     MessageResponse,
 )
 from app.utils.get_user import get_current_user
 from app.utils.check_roles import require_role
 
-router = APIRouter(prefix="/suppliers", tags=["Suppliers CRUD"])
-
+router = APIRouter(prefix="/inventory/products", tags=["Products CRUD"])
 
 # -----------------------------------------------------------
-# CREATE SUPPLIER
+# CREATE PRODUCT
 # -----------------------------------------------------------
-@router.post("", response_model=SupplierCreateResponse)
+@router.post("", response_model=ProductResponse)
 @require_role(["admin", "inventory"])
-async def create_supplier_route(
-    data: SupplierCreate,
+async def create_product_route(
+    data: ProductCreate,
     db: AsyncSession = Depends(get_db),
     _user=Depends(get_current_user),
 ):
-    return await create_supplier(db, data, _user)
+    return await create_product(db, data, _user)
 
 
 # -----------------------------------------------------------
-# LIST ALL SUPPLIERS
+# LIST ALL PRODUCTS
 # -----------------------------------------------------------
-@router.get("", response_model=SupplierListResponse)
+@router.get("", response_model=ProductListResponse)
 @require_role(["admin", "inventory"])
-async def list_suppliers(
+async def list_products(
     db: AsyncSession = Depends(get_db),
     _user=Depends(get_current_user),
 ):
-    return await get_all_suppliers(db)
+    return await get_all_products(db)
 
 
 # -----------------------------------------------------------
-# GET SUPPLIER BY ID
+# GET PRODUCT BY ID
 # -----------------------------------------------------------
-@router.get("/{supplier_id}", response_model=SupplierCreateResponse)
+@router.get("/{product_id}", response_model=ProductResponse)
 @require_role(["admin", "inventory"])
-async def get_supplier_by_id(
-    supplier_id: int,
+async def get_product_by_id(
+    product_id: int,
     db: AsyncSession = Depends(get_db),
     _user=Depends(get_current_user),
 ):
-    return await get_supplier(db, supplier_id)
+    return await get_product(db, product_id)
 
 
 # -----------------------------------------------------------
-# UPDATE SUPPLIER
+# UPDATE PRODUCT
 # -----------------------------------------------------------
-@router.put("/{supplier_id}", response_model=SupplierCreateResponse)
+@router.put("/{product_id}", response_model=ProductResponse)
 @require_role(["admin", "inventory"])
-async def update_supplier_route(
-    supplier_id: int,
-    data: SupplierUpdate,
+async def update_product_route(
+    product_id: int,
+    data: ProductUpdate,
     db: AsyncSession = Depends(get_db),
     _user=Depends(get_current_user),
 ):
-    return await update_supplier(db, supplier_id, data, _user)
+    return await update_product(db, product_id, data, _user)
 
 
 # -----------------------------------------------------------
-# DELETE SUPPLIER
+# DELETE PRODUCT
 # -----------------------------------------------------------
-@router.delete("/{supplier_id}", response_model=MessageResponse)
+@router.delete("/{product_id}", response_model=MessageResponse)
 @require_role(["admin"])
-async def delete_supplier_route(
-    supplier_id: int,
+async def delete_product_route(
+    product_id: int,
     db: AsyncSession = Depends(get_db),
     _user=Depends(get_current_user),
 ):
-    return await delete_supplier(db, supplier_id, _user)
+    return await delete_product(db, product_id, _user)

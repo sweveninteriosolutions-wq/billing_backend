@@ -14,7 +14,7 @@ from app.utils.get_user import get_current_user
 from app.utils.activity_helpers import log_user_activity
 from app.utils.check_roles import require_role
 
-router = APIRouter(tags=["Invoice"]) 
+router = APIRouter(prefix="/billing", tags=["Invoice"]) 
 
 # GET /billing/invoices/available
 @router.get("/invoices/ready", response_model=ReadyToInvoiceResponse)
