@@ -106,7 +106,7 @@ async def route_add_payment(invoice_id: int, payload: PaymentCreate, db: AsyncSe
     try:
         # award_loyalty_for_invoice will be executed in a transaction; since add_payment already committed,
         # we call award which will start its own transaction.
-        await award_loyalty_for_invoice(db, invoice_id=invoice_id)
+        await award_loyalty_for_invoice(_user, db, invoice_id=invoice_id)
                 # ✅ Logging activity
         await log_user_activity(
             db=db,

@@ -7,7 +7,7 @@ from .complaint_router import router as complaint_router
 from .customers_router import router as customers_router
 from .grns_router import router as grns_router
 from .invoice_router import router as invoice_router
-from .loyality_router import router as loyality_router
+from .loyalty_router import router as loyality_router
 from .payments_router import router as payments_router
 from .products_router import router as products_router
 from .quotations_router import router as quotations_router
@@ -24,7 +24,7 @@ __all__ = [
     "customers_router",
     "grns_router",
     "invoice_router",
-    "loyality_router",
+    "loyalty_router",
     "payments_router",
     "products_router",
     "quotations_router",
