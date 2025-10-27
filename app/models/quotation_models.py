@@ -1,4 +1,4 @@
-# app/models/billing_models/quotation_models.py
+# app/models/quotation_models.py
 from sqlalchemy import (
     Column, Integer, String, Boolean, ForeignKey,
     DateTime, JSON, Numeric, event, func
