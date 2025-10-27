@@ -153,7 +153,7 @@ async def get_product(db: AsyncSession, product_id: int) -> dict:
 # --------------------------
 async def update_product(db: AsyncSession, product_id: int, data: ProductUpdate, current_user):
     """
-    Update product details and log the changes.
+    Update product details and log changes.
     """
     try:
         result = await db.execute(
@@ -164,23 +164,23 @@ async def update_product(db: AsyncSession, product_id: int, data: ProductUpdate,
             raise HTTPException(status_code=404, detail="Product not found")
 
         # Validate numeric fields
-        if data.price is not None and data.price < 0:
-            raise HTTPException(status_code=400, detail="Price must be non-negative")
-        if data.quantity_showroom is not None and data.quantity_showroom < 0:
-            raise HTTPException(status_code=400, detail="Showroom quantity must be non-negative")
-        if data.quantity_warehouse is not None and data.quantity_warehouse < 0:
-            raise HTTPException(status_code=400, detail="Warehouse quantity must be non-negative")
+        for field, msg in [("price", "Price must be non-negative"),
+                           ("quantity_showroom", "Showroom quantity must be non-negative"),
+                           ("quantity_warehouse", "Warehouse quantity must be non-negative")]:
+            value = getattr(data, field, None)
+            if value is not None and value < 0:
+                raise HTTPException(status_code=400, detail=msg)
 
         # Track changes
         changes = []
 
-        # Handle name change separately
+        # Handle name separately
         if data.name and data.name != product.name:
             existing = await db.execute(
                 select(Product).where(
                     Product.name == data.name,
                     Product.id != product_id,
-                    Product.is_deleted == False,
+                    Product.is_deleted == False
                 )
             )
             if existing.scalars().first():
@@ -188,18 +188,17 @@ async def update_product(db: AsyncSession, product_id: int, data: ProductUpdate,
             changes.append(f"name: {product.name} → {data.name}")
             product.name = data.name
 
-        # Update remaining fields
+        # Update other fields
         for key, value in data.model_dump(exclude_unset=True).items():
-            if key != "name":
-                old_val = getattr(product, key)
-                if old_val != value:
-                    changes.append(f"{key}: {old_val} → {value}")
-                    setattr(product, key, value)
+            if key != "name" and getattr(product, key) != value:
+                changes.append(f"{key}: {getattr(product, key)} → {value}")
+                setattr(product, key, value)
 
         db.add(product)
+        await db.commit()  # ✅ Always commit, not just when there are changes
         await db.refresh(product)
 
-        # Log changes
+        # Log activity if user exists and changes made
         if current_user and changes:
             change_summary = ", ".join(changes)
             await log_user_activity(

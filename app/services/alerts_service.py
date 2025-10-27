@@ -3,31 +3,39 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import or_
 from typing import List
-
 from app.models.product_models import Product
-from app.schemas.inventory_schemas import StockAlert
+from app.schemas.alert_schemas import StockAlert
 from app.utils.activity_helpers import log_user_activity
 
-
-async def get_stock_alerts(db: AsyncSession, current_user = None) -> List[StockAlert]:
+async def get_stock_alerts(
+    db: AsyncSession,
+    current_user=None,
+    page: int = 1,
+    page_size: int = 50
+) -> List[StockAlert]:
     """
     Fetch products that are below minimum stock thresholds.
     Only considers active products (is_deleted=False).
-    Optionally logs the alert check by the current user.
+    Optionally logs alert checks by the current user.
+    Supports pagination.
     """
     try:
+        offset = (page - 1) * page_size
+
         alert_condition = or_(
             Product.quantity_showroom < Product.min_stock_threshold,
             (Product.quantity_showroom + Product.quantity_warehouse) < Product.min_stock_threshold
         )
 
         result = await db.execute(
-            select(Product).where(Product.is_deleted == False, alert_condition)
+            select(Product)
+            .where(Product.is_deleted == False, alert_condition)
+            .offset(offset)
+            .limit(page_size)
         )
         products = result.scalars().all()
 
-        # Log activity
-        if current_user and products:
+        if current_user:
             await log_user_activity(
                 db,
                 user_id=current_user.id,
@@ -48,4 +56,4 @@ async def get_stock_alerts(db: AsyncSession, current_user = None) -> List[StockA
         ]
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error fetching stock alerts: {e}")
+        raise HTTPException(status_code=500, detail=f"Error fetching stock alerts: {str(e)}")

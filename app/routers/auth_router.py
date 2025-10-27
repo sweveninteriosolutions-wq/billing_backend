@@ -13,6 +13,8 @@ from app.services.auth_service import (
 from app.utils.get_user import get_current_user
 from app.utils.activity_helpers import log_user_activity
 
+from app.services.alerts_service import get_stock_alerts
+
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
@@ -29,6 +31,19 @@ async def login(request: Request, data: UserLogin, db: AsyncSession = Depends(ge
         username=user.username,
         message=f"User '{user.username}' logged in.",
     )
+    if user.role in ["admin", "inventory"]:
+        try:
+            alerts = await get_stock_alerts(db, current_user=user)
+            alert_count = len(alerts)
+            await log_user_activity(
+                db=db,
+                user_id=user.id,
+                username=user.username,
+                message=f"Auto stock check done on login ({alert_count} items below threshold).",
+            )
+        except Exception as e:
+            print(f"Stock alert auto-check failed: {e}")
+
     await db.commit()
 
     return TokenResponse(
