@@ -20,6 +20,8 @@ from app.utils.decimal_utils import to_decimal
 from app.utils.activity_helpers import log_user_activity
 
 
+
+
 # -------------------------------------------------------------------------
 # Helper: Generate Unique Invoice Number
 # -------------------------------------------------------------------------
@@ -336,21 +338,41 @@ async def award_loyalty_for_invoice(
     invoice_id: int,
     token_rate_per_1000: int = 1,
 ):
-    r = await session.execute(select(Invoice).where(Invoice.id == invoice_id).with_for_update())
-    invoice = r.scalar_one_or_none()
+    """
+    Awards loyalty tokens to the customer for a fully paid invoice.
+    - Only executes if invoice status == PAID and loyalty not already claimed.
+    - 1 token per 1000 units of currency by default.
+    """
+    # Lock invoice row for safe update
+    result = await session.execute(
+        select(Invoice).where(Invoice.id == invoice_id).with_for_update()
+    )
+    invoice = result.unique().scalar_one_or_none()
+
     if invoice is None or invoice.loyalty_claimed or invoice.status != InvoiceStatus.PAID:
         return None
 
     total_amount = to_decimal(invoice.total_amount)
     tokens = int((total_amount // Decimal("1000")) * token_rate_per_1000)
     lt = None
+
     if tokens > 0:
-        lt = LoyaltyToken(customer_id=invoice.customer_id, invoice_id=invoice.id, tokens=tokens)
+        lt = LoyaltyToken(
+            customer_id=invoice.customer_id,
+            invoice_id=invoice.id,
+            tokens=tokens,
+        )
         session.add(lt)
 
+    # Mark invoice as loyalty claimed
     invoice.loyalty_claimed = True
     await session.flush()
+
+    # ✅ Commit to persist both invoice and loyalty token changes
+    await session.commit()
+
     return lt if tokens > 0 else None
+
 
 
 # -------------------------------------------------------------------------
@@ -427,14 +449,35 @@ async def get_final_bill(session: AsyncSession, invoice_id: int) -> dict:
     }
 
 
-# -------------------------------------------------------------------------
-# Payment Queries
-# -------------------------------------------------------------------------
-async def get_all_payments(session: AsyncSession, limit: int = 100, offset: int = 0):
-    res = await session.execute(
-        select(Payment).order_by(Payment.payment_date.desc()).limit(limit).offset(offset)
-    )
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List, Optional
+from app.models.invoice_models import Payment
+
+
+async def get_all_payments(
+    session: AsyncSession,
+    limit: int = 100,
+    offset: int = 0,
+    customer_id: Optional[int] = None,
+    invoice_id: Optional[int] = None
+) -> List[Payment]:
+    """
+    Fetch all payments with optional filters for customer or invoice.
+    Supports pagination.
+    """
+    query = select(Payment)
+
+    if customer_id:
+        query = query.where(Payment.customer_id == customer_id)
+    if invoice_id:
+        query = query.where(Payment.invoice_id == invoice_id)
+
+    query = query.order_by(Payment.payment_date.desc()).limit(limit).offset(offset)
+
+    res = await session.execute(query)
     return res.unique().scalars().all()
+
 
 
 async def get_payment_by_id(session: AsyncSession, payment_id: int):
