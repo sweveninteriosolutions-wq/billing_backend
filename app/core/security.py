@@ -1,8 +1,9 @@
+# app/core/security.py
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
-from jose import jwt
-from app.core.config import JWT_SECRET, JWT_ALGORITHM
-
+from typing import Optional, Dict
+from jose import jwt, JWTError
+from app.core.config import JWT_SECRET, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -12,14 +13,34 @@ def hash_password(password: str) -> str:
 def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain, hashed)
 
-
-def _create_token(data: dict, expires_delta: timedelta, secret: str, algorithm: str) -> str:
+def create_access_token(data: Dict[str, str], token_version: int, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
-    expire = datetime.utcnow() + expires_delta
-    to_encode.update({"exp": expire})
-    return jwt.encode(to_encode, secret, algorithm=algorithm)
-def create_access_token(data: dict, expires_delta: timedelta) -> str:
-    return _create_token(data, expires_delta, JWT_SECRET, JWT_ALGORITHM)
+    now = datetime.utcnow()
+    expire = now + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({
+        "exp": expire,
+        "iat": now,
+        "type": "access",
+        "token_version": token_version,
+    })
+    return jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
 
-def create_refresh_token(data: dict, expires_delta: timedelta = timedelta(days=7)) -> str:
-    return _create_token(data, expires_delta, JWT_SECRET, JWT_ALGORITHM)
+
+def create_refresh_token(data: Dict[str, str], expires_delta: Optional[timedelta] = None) -> str:
+    to_encode = data.copy()
+    now = datetime.utcnow()
+    expire = now + (expires_delta or timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS))
+    to_encode.update({
+        "exp": expire,
+        "iat": now,
+        "type": "refresh",
+    })
+    return jwt.encode(to_encode, JWT_SECRET, algorithm=JWT_ALGORITHM)
+
+
+def decode_token(token: str) -> Dict:
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
+        return payload
+    except JWTError:
+        raise ValueError("Invalid or expired token")
