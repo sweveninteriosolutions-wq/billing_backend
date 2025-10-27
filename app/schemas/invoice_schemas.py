@@ -1,3 +1,4 @@
+# app/schemas/invoice_schemas.py
 from pydantic import BaseModel, Field
 from decimal import Decimal
 from typing import Optional, List
@@ -9,9 +10,14 @@ from app.models.invoice_models import InvoiceStatus
 PositiveDecimal = Annotated[Decimal, Field(gt=0, max_digits=14, decimal_places=2)]
 NonNegativeDecimal = Annotated[Decimal, Field(ge=0, max_digits=14, decimal_places=2)]
 
+
+# -----------------------------
+# Payment Schemas
+# -----------------------------
 class PaymentCreate(BaseModel):
     amount: PositiveDecimal
     payment_method: Optional[str] = None
+
 
 class PaymentResponse(BaseModel):
     id: int
@@ -25,9 +31,14 @@ class PaymentResponse(BaseModel):
         orm_mode = True
         json_encoders = {Decimal: lambda v: str(v)}
 
+
+# -----------------------------
+# Invoice Schemas
+# -----------------------------
 class InvoiceCreate(BaseModel):
     quotation_id: Optional[int] = None
     sales_order_id: Optional[int] = None
+
 
 class InvoiceResponse(BaseModel):
     id: int
@@ -49,17 +60,22 @@ class InvoiceResponse(BaseModel):
         orm_mode = True
         json_encoders = {Decimal: lambda v: str(v)}
 
+
+# -----------------------------
+# Discount & Approval Schemas
+# -----------------------------
 class DiscountApply(BaseModel):
     discount_amount: NonNegativeDecimal
     note: Optional[str] = None
+
 
 class Approve(BaseModel):
     discount_amount: Optional[NonNegativeDecimal] = None
     note: Optional[str] = None
 
-
     class Config:
         orm_mode = True
+
 
 class ApproveResponse(BaseModel):
     id: int
@@ -69,12 +85,10 @@ class ApproveResponse(BaseModel):
     class Config:
         orm_mode = True
 
-# app/schemas/billing_schemas/invoice_schema.py
-from pydantic import BaseModel
-from typing import List, Optional
-from decimal import Decimal
-from datetime import datetime
 
+# -----------------------------
+# Ready to Invoice Schemas
+# -----------------------------
 class QuotationItemResponse(BaseModel):
     id: int
     product_id: int
@@ -82,6 +96,7 @@ class QuotationItemResponse(BaseModel):
     quantity: int
     unit_price: Decimal
     total: Decimal
+
 
 class QuotationReadyResponse(BaseModel):
     id: int
@@ -92,6 +107,7 @@ class QuotationReadyResponse(BaseModel):
     total_items_amount: Decimal
     items: List[QuotationItemResponse]
 
+
 class SalesOrderReadyResponse(BaseModel):
     id: int
     customer_id: int
@@ -100,13 +116,15 @@ class SalesOrderReadyResponse(BaseModel):
     total_amount: Decimal  # calculated from quotation_snapshot if needed
     customer_name: Optional[str]
 
+
 class ReadyToInvoiceResponse(BaseModel):
     quotations: List[QuotationReadyResponse]
     sales_orders: List[SalesOrderReadyResponse]
 
 
-from pydantic import BaseModel
-
+# -----------------------------
+# Loyalty Schemas
+# -----------------------------
 class LoyaltyTokenResponse(BaseModel):
     id: int
     customer_id: int
@@ -115,6 +133,7 @@ class LoyaltyTokenResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
 
 class LoyaltySummaryResponse(BaseModel):
     total_tokens: int
