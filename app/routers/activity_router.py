@@ -1,4 +1,4 @@
-# app/routers/auth/activity_router.py
+# app/routers/activity_router.py
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional

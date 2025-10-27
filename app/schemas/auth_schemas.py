@@ -1,25 +1,29 @@
-# app/schemas/user_schemas.py
-from pydantic import BaseModel
-from typing import Optional, List
+# File: app/schemas/user_schemas.py
+from pydantic import BaseModel, EmailStr, Field
+from typing import Optional, List, Any
+from typing import Literal
 
 class UserLogin(BaseModel):
-    username: str
+    username: EmailStr
     password: str
 
 class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str | None = None
-    token_type: str = "bearer"
+    token_type: Literal["bearer"] = "bearer"
+
+    class Config:
+        from_attributes = True
 
 class UserBase(BaseModel):
-    username: str
+    username: EmailStr
     role: str
 
 class UserCreate(UserBase):
     password: str
 
 class UserUpdate(BaseModel):
-    username: Optional[str] = None
+    username: Optional[EmailStr] = None
     password: Optional[str] = None
     role: Optional[str] = None
 
@@ -31,11 +35,6 @@ class UserOut(UserBase):
 
 class MessageResponse(BaseModel):
     msg: str
-
-# ✅ Unified structure for all endpoints
-class UserResponse(BaseModel):
-    msg: str
-    data: Optional[UserOut] = None
 
 class UsersListResponse(BaseModel):
     msg: str

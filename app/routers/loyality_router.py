@@ -9,12 +9,13 @@ from app.core.db import get_db
 from app.services.invoice_service import get_invoice_by_id
 from sqlalchemy import select
 from app.utils.check_roles import require_role
+from app.utils.get_user import get_current_user
 
-router = APIRouter(prefix="/billing")
+router = APIRouter()
 
 @router.get("/loyalty/{token_id}", response_model=LoyaltyTokenResponse, tags=["loyalty"])
 @require_role(["admin", "cashier", "sales"])
-async def get_loyalty_by_id(token_id: int, session: AsyncSession = Depends(get_db)):
+async def get_loyalty_by_id(token_id: int, session: AsyncSession = Depends(get_db),_user=Depends(get_current_user)):
     r = await session.execute(select(LoyaltyToken).where(LoyaltyToken.id == token_id))
     tok = r.scalar_one_or_none()
     if not tok:
@@ -27,7 +28,7 @@ from sqlalchemy import func
 
 @router.get("/loyalty/customer/{customer_id}", response_model=LoyaltySummaryResponse, tags=["loyalty"])
 @require_role(["admin", "cashier", "sales"])
-async def get_loyalty_by_customer(customer_id: int, session: AsyncSession = Depends(get_db)):
+async def get_loyalty_by_customer(customer_id: int, session: AsyncSession = Depends(get_db), _user=Depends(get_current_user)):
 
     # Fetch all tokens for customer
     r = await session.execute(

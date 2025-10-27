@@ -1,6 +1,9 @@
 # app/routers/billing/quotation_router.py
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import datetime
+from fastapi.responses import FileResponse
 
 from app.core.db import get_db
 from app.schemas.quotation_schema import (
@@ -12,7 +15,7 @@ from app.schemas.quotation_schema import (
 from app.services.quotation_service import (
     create_quotation,
     get_quotation,
-    list_quotations,
+    get_all_quotations_service,
     update_quotation,
     delete_quotation,
     delete_quotation_item,
@@ -21,11 +24,11 @@ from app.services.quotation_service import (
     move_to_sales,
     move_to_invoice
 )
+from app.utils.pdf_generators.quotation_pdf import generate_quotation_pdf
 from app.utils.get_user import get_current_user
 from app.utils.check_roles import require_role
 
-router = APIRouter(prefix="/billing/quotations", tags=["Quotations"])
-
+router = APIRouter(prefix="/quotations", tags=["Quotations"])
 
 # --------------------------
 # CREATE QUOTATION
@@ -39,7 +42,6 @@ async def create_quotation_route(
 ):
     return await create_quotation(db, data, _user)
 
-
 # --------------------------
 # GET SINGLE QUOTATION BY ID
 # --------------------------
@@ -52,18 +54,23 @@ async def get_quotation_route(
 ):
     return await get_quotation(db, quotation_id)
 
-
-# --------------------------
-# LIST ALL QUOTATIONS
-# --------------------------
-@router.get("/", response_model=QuotationListResponse)
+# GET ALL QUOTATIONS (Paginated + Filtered)
+@router.get("", response_model=QuotationListResponse)
 @require_role(["admin", "sales", "cashier"])
-async def list_quotations_route(
+async def get_all_quotations(
+    status: Optional[str] = Query(None, description="Filter by status (pending/approved/moved)"),
+    start_date: Optional[datetime] = Query(None),
+    end_date: Optional[datetime] = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(10, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
-    _user=Depends(get_current_user)
+    _user = Depends(get_current_user)
 ):
-    return await list_quotations(db)
-
+    data = await get_all_quotations_service(
+        db, status=status, start_date=start_date, end_date=end_date,
+        page=page, page_size=page_size
+    )
+    return {"message": "Quotations retrieved successfully", "data": data}
 
 # --------------------------
 # GET QUOTATIONS BY CUSTOMER ID
@@ -76,7 +83,6 @@ async def get_quotations_by_customer_route(
     _user=Depends(get_current_user)
 ):
     return await get_quotation_list_by_CID(db, customer_id)
-
 
 # --------------------------
 # UPDATE QUOTATION
@@ -91,8 +97,7 @@ async def update_quotation_route(
 ):
     return await update_quotation(db, quotation_id, data, _user)
 
-
-# --------------------------
+# -------------------------
 # DELETE QUOTATION (soft delete)
 # --------------------------
 @router.delete("/{quotation_id}", response_model=QuotationResponse)
@@ -103,7 +108,6 @@ async def delete_quotation_route(
     _user=Depends(get_current_user)
 ):
     return await delete_quotation(db, quotation_id, _user)
-
 
 # --------------------------
 # APPROVE QUOTATION
@@ -117,7 +121,6 @@ async def approve_quotation_route(
 ):
     return await approve_quotation(db, quotation_id, _user)
 
-
 # --------------------------
 # MOVE QUOTATION TO SALES
 # --------------------------
@@ -129,7 +132,6 @@ async def move_quotation_to_sales_route(
     _user=Depends(get_current_user)
 ):
     return await move_to_sales(db, quotation_id, _user)
-
 
 # --------------------------
 # MOVE QUOTATION TO INVOICE
@@ -143,7 +145,6 @@ async def move_quotation_to_invoice_route(
 ):
     return await move_to_invoice(db, quotation_id, _user)
 
-
 # --------------------------
 # DELETE QUOTATION ITEM
 # --------------------------
@@ -155,3 +156,20 @@ async def delete_quotation_item_route(
     _user=Depends(get_current_user)
 ):
     return await delete_quotation_item(db, item_id, _user)
+
+# --------------------------
+# GENERATE QUOTATION PDF
+# --------------------------
+@router.get("/{quotation_id}/pdf", response_class=FileResponse)
+@require_role(["admin", "sales"])
+async def download_quotation_pdf(
+    quotation_id: int,
+    db: AsyncSession = Depends(get_db),
+    _user = Depends(get_current_user)
+):
+    file_path = await generate_quotation_pdf(db, quotation_id)
+    return FileResponse(
+        file_path,
+        media_type="application/pdf",
+        filename=f"quotation_{quotation_id}.pdf"
+    )

@@ -1,10 +1,18 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from sqlalchemy.orm import selectinload
-from fastapi import HTTPException
 from datetime import datetime, timezone
 from decimal import Decimal
 import logging
+import os
+from typing import Optional, List
+
+from fastapi import HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
+from sqlalchemy import and_, select
+from reportlab.lib.pagesizes import A4
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
 
 from app.models.quotation_models import Quotation, QuotationItem
 from app.models.customer_models import Customer
@@ -371,22 +379,36 @@ async def get_quotation(db: AsyncSession, quotation_id: int) -> QuotationRespons
 # --------------------------
 # LIST ALL QUOTATIONS
 # --------------------------
-async def list_quotations(db: AsyncSession) -> QuotationListResponse:
-    result = await db.execute(
+from sqlalchemy import select, and_
+
+async def get_all_quotations_service(
+    db: AsyncSession,
+    status: Optional[str] = None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+    page: int = 1,
+    page_size: int = 10
+):
+    offset = (page - 1) * page_size
+    conditions = [Quotation.is_deleted == False]
+
+    if status:
+        conditions.append(Quotation.status == status)
+    if start_date and end_date:
+        conditions.append(Quotation.created_at.between(start_date, end_date))
+
+    query = (
         select(Quotation)
-        .options(selectinload(Quotation.items))
-        .where(Quotation.is_deleted == False)
+        .where(and_(*conditions))
+        .order_by(Quotation.created_at.desc())
+        .offset(offset)
+        .limit(page_size)
     )
-    quotations = result.scalars().all()
 
-    quotations_out = []
-    for q in quotations:
-        active_items = [item for item in q.items if not item.is_deleted]
-        q_out = QuotationOut.from_orm(q)
-        q_out.items = [QuotationItemOut.from_orm(item) for item in active_items]
-        quotations_out.append(q_out)
+    result = await db.execute(query)
+    quotations = result.unique().scalars().all()
 
-    return QuotationListResponse(message="Quotations retrieved successfully", data=quotations_out)
+    return [QuotationOut.from_orm(q) for q in quotations]
 
 
 # --------------------------

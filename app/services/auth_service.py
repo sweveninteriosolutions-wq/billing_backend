@@ -1,103 +1,135 @@
 # app/services/auth_service.py
 from datetime import timedelta
+from typing import Dict
 from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from jose import jwt, JWTError
-from app.models.user_models import User
-from app.core.security import verify_password, create_access_token, create_refresh_token
+from sqlalchemy import update
+
+from app.models.user_models import User, RefreshToken
+from app.core.security import (
+    verify_password,
+    create_access_token,
+    create_refresh_token,
+    decode_token,
+)
 from app.core.config import (
     ACCESS_TOKEN_EXPIRE_MINUTES,
-    ADMIN_ACCESS_TOKEN_EXPIRE_MINUTES,
     REFRESH_TOKEN_EXPIRE_DAYS,
-    JWT_SECRET,
-    JWT_ALGORITHM
+    ADMIN_ACCESS_TOKEN_EXPIRE_MINUTES,
 )
+
 
 async def authenticate_user(db: AsyncSession, username: str, password: str):
     result = await db.execute(select(User).where(User.username == username))
     user = result.scalars().first()
     if not user or not verify_password(password, user.password_hash):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials"
+        )
     return user
 
-async def create_tokens(user: User, db: AsyncSession):
+
+async def create_tokens(db: AsyncSession, user: User):
     """
-    Create access and refresh tokens for all users.
-    Stores the refresh token in the database.
+    Create new access and refresh tokens.
+    Includes token_version to support immediate logout invalidation.
     """
-    # Access token
-    expire_minutes = ADMIN_ACCESS_TOKEN_EXPIRE_MINUTES if user.role == "admin" else ACCESS_TOKEN_EXPIRE_MINUTES
-    access_token = create_access_token(
-        {"sub": user.username, "role": user.role},
-        timedelta(minutes=expire_minutes)
+    expire_minutes = (
+        ADMIN_ACCESS_TOKEN_EXPIRE_MINUTES
+        if user.role == "admin"
+        else ACCESS_TOKEN_EXPIRE_MINUTES
     )
 
-    # Refresh token for all users
+    access_token = create_access_token(
+        {"sub": user.username, "user_id": user.id, "role": user.role},
+        token_version=user.token_version,
+        expires_delta=timedelta(minutes=expire_minutes),
+    )
+
     refresh_token = create_refresh_token(
         {"sub": user.username, "type": "refresh"},
-        timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+        expires_delta=timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS),
     )
+
     user.refresh_token = refresh_token
     await db.commit()
+    await db.refresh(user)
 
     return access_token, refresh_token
 
 
-from datetime import timedelta
-from jose import jwt, JWTError
-from fastapi import HTTPException, status
-from sqlalchemy.future import select
-from app.models.user_models import User
-from app.core.config import JWT_SECRET, JWT_ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES, REFRESH_TOKEN_EXPIRE_DAYS
-from app.services.auth_service import create_access_token, create_refresh_token  # assuming you have these helpers
-
-
-async def refresh_access_token(db: AsyncSession, old_refresh_token: str):
+async def refresh_access_token(db: AsyncSession, old_refresh_token: str) -> Dict:
     """
-    Securely exchange a refresh token for a new access + refresh token pair.
-    Implements refresh token rotation.
+    Rotate refresh token: must find the DB record and ensure it is not revoked.
+    Marks old token revoked and issues a new refresh token record.
     """
     try:
-        payload = jwt.decode(old_refresh_token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
-        if payload.get("type") != "refresh":
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type")
-        username = payload.get("sub")
-    except JWTError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired refresh token")
+        payload = decode_token(old_refresh_token)
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token",
+        )
 
-    # Fetch user from DB
-    result = await db.execute(select(User).where(User.username == username))
-    user = result.scalars().first()
+    if payload.get("type") != "refresh":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token type"
+        )
 
-    if not user or user.refresh_token != old_refresh_token:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or reused refresh token")
+    username = payload.get("sub")
+    user_id = payload.get("user_id")
 
-    # 🔐 Rotate refresh token: issue a new one and revoke the old one
+    result = await db.execute(
+        select(RefreshToken).where(RefreshToken.token == old_refresh_token)
+    )
+    db_token = result.scalars().first()
+
+    if not db_token or db_token.revoked:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or reused refresh token",
+        )
+
+    db_token.revoked = True
+    await db.flush()
+
     new_access_token = create_access_token(
-        {"sub": user.username, "role": user.role},
-        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        {"sub": username, "user_id": user_id, "role": db_token.user.role},
+        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     )
 
-    new_refresh_token = create_refresh_token({"sub": user.username})
+    new_refresh_token_str = create_refresh_token(
+        {"sub": username, "user_id": user_id}
+    )
 
-    # Update DB with the new refresh token
-    user.refresh_token = new_refresh_token
-    await db.commit()
+    new_refresh_record = RefreshToken(user_id=user_id, token=new_refresh_token_str)
+    db.add(new_refresh_record)
+    await db.flush()
 
     return {
         "access_token": new_access_token,
-        "refresh_token": new_refresh_token,
-        "token_type": "bearer"
+        "refresh_token": new_refresh_token_str,
+        "token_type": "bearer",
+        "user_id": user_id,
+        "username": username,
     }
+
 
 async def logout_user(db: AsyncSession, username: str):
     result = await db.execute(select(User).where(User.username == username))
     user = result.scalars().first()
     if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    
-    # Invalidate refresh token
-    user.refresh_token = None
-    await db.commit()
+        raise HTTPException(status_code=404, detail="User not found")
+
+    user.token_version += 1
+
+    await db.execute(
+        update(RefreshToken)
+        .where(RefreshToken.user_id == user.id)
+        .values(revoked=True)
+    )
+
+    await db.flush()
+
     return {"msg": "Logged out successfully"}

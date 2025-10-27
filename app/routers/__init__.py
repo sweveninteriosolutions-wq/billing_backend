@@ -13,7 +13,7 @@ from .products_router import router as products_router
 from .quotations_router import router as quotations_router
 from .sales_orders_router import router as sales_orders_router
 from .suppliers_router import router as suppliers_router
-from .transfers_router import router as transfers_router
+from .stock_transfers_router import router as transfers_router
 from .users_router import router as users_router
 
 __all__ = [
@@ -30,6 +30,6 @@ __all__ = [
     "quotations_router",
     "sales_orders_router",
     "suppliers_router",
-    "transfers_router",
+    "stock_transfers_router",
     "users_router",
 ]

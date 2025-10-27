@@ -7,7 +7,7 @@ import os
 async def create_admin():
     async with AsyncSessionLocal() as session:
         admin = User(
-            username="admin",
+            username="admin@gmail.com",
             password_hash=hash_password(os.getenv("ADMIN_PASSWORD", "admin123")),
             role="admin",
             is_active=True
