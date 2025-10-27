@@ -10,8 +10,6 @@ from app.services.supplier_service import (
     get_supplier,
     update_supplier,
     delete_supplier,
-    get_supplier_grns,
-    get_supplier_products
 )
 from app.schemas.supplier_schemas import (
     SupplierCreate,
@@ -19,8 +17,6 @@ from app.schemas.supplier_schemas import (
     SupplierCreateResponse,
     SupplierListResponse,
     MessageResponse,
-    GRNResponseList,
-    ProductListResponse
 
 )
 from app.utils.get_user import get_current_user
@@ -100,34 +96,3 @@ async def delete_supplier_route(
     _user=Depends(get_current_user),
 ):
     return await delete_supplier(db, supplier_id, _user)
-
-# -----------------------------------------------------------
-# GET SUPPLIER → GRNs
-# -----------------------------------------------------------
-@router.get("/{supplier_id}/grns", response_model=GRNResponseList)
-@require_role(["admin", "inventory"])
-async def get_supplier_grns_route(
-    supplier_id: int,
-    db: AsyncSession = Depends(get_db),
-    _user=Depends(get_current_user),
-):
-    """
-    Get all GRNs linked to a supplier.
-    """
-    return await get_supplier_grns(db, supplier_id)
-
-
-# -----------------------------------------------------------
-# GET SUPPLIER → PRODUCTS
-# -----------------------------------------------------------
-@router.get("/{supplier_id}/products", response_model=ProductListResponse)
-@require_role(["admin", "inventory"])
-async def get_supplier_products_route(
-    supplier_id: int,
-    db: AsyncSession = Depends(get_db),
-    _user=Depends(get_current_user),
-):
-    """
-    Get all products linked to a supplier.
-    """
-    return await get_supplier_products(db, supplier_id)

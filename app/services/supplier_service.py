@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.exc import IntegrityError, DataError
 from app.models.supplier_models import Supplier
-from app.schemas.supplier_schemas import SupplierCreate, SupplierUpdate, SupplierOut,GRNResponse, ProductOut
+from app.schemas.supplier_schemas import SupplierCreate, SupplierUpdate, SupplierOut
 from app.utils.activity_helpers import log_user_activity
 from app.models.grn_models import GRN
 from app.models.product_models import Product
@@ -179,38 +179,3 @@ async def delete_supplier(db: AsyncSession, supplier_id: int, current_user) -> d
 
 
     return {"message": "Supplier deleted successfully"}
-
-# ---------------------------
-# GET SUPPLIER → GRNs
-# ---------------------------
-async def get_supplier_grns(db: AsyncSession, supplier_id: int) -> dict:
-    supplier = await db.get(Supplier, supplier_id)
-    if not supplier or supplier.is_deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Supplier not found")
-
-    result = await db.execute(select(GRN).where(GRN.supplier_id == supplier_id))
-    grns = result.scalars().all()
-
-    return {
-        "message": f"GRNs fetched for supplier '{supplier.name}'",
-        "data": [GRNResponse.model_validate(g) for g in grns],
-        "total": len(grns)
-    }
-
-
-# ---------------------------
-# GET SUPPLIER → PRODUCTS
-# ---------------------------
-async def get_supplier_products(db: AsyncSession, supplier_id: int) -> dict:
-    supplier = await db.get(Supplier, supplier_id)
-    if not supplier or supplier.is_deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Supplier not found")
-
-    result = await db.execute(select(Product).where(Product.supplier_id == supplier_id))
-    products = result.scalars().all()
-
-    return {
-        "message": f"Products fetched for supplier '{supplier.name}'",
-        "data": [ProductOut.model_validate(p) for p in products],
-        "total": len(products)
-    }
