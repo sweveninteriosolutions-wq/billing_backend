@@ -22,7 +22,7 @@ from app.services.sales_order_service import (
 from app.utils.get_user import get_current_user
 from app.utils.check_roles import require_role
 
-router = APIRouter(prefix="/billing/sales_orders", tags=["Sales Orders"])
+router = APIRouter(prefix="/sales_orders", tags=["Sales Orders"])
 
 # GET approved or moved quotations
 @require_role(["admin", "cashier"])
