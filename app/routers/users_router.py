@@ -1,5 +1,5 @@
-# app/routers/users_routes.py
-from fastapi import APIRouter, Depends, status
+# app/router/user_router.py
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_db
 from app.schemas.user_schemas import (
@@ -8,8 +8,7 @@ from app.schemas.user_schemas import (
 from app.utils.get_user import get_current_user
 from app.utils.check_roles import require_role
 from app.services.user_service import (
-    create_user, list_users, get_user_by_id, update_user,
-    delete_user
+    create_user, list_users, get_user_by_id, update_user, delete_user
 )
 
 router = APIRouter(prefix="/users", tags=["Users CRUD"])
@@ -29,12 +28,19 @@ async def create_user_route(
 
 
 # ---------------------------
-# LIST ALL USERS
+# LIST USERS WITH FILTERS & PAGINATION
 # ---------------------------
 @router.get("/", response_model=UsersListResponse)
 @require_role(["admin"])
-async def list_users_route(db: AsyncSession = Depends(get_db), _user = Depends(get_current_user)):
-    users = await list_users(db)
+async def list_users_route(
+    db: AsyncSession = Depends(get_db),
+    _user = Depends(get_current_user),
+    role: str | None = Query(None, description="Filter users by role"),
+    is_active: bool | None = Query(None, description="Filter users by active status"),
+    limit: int = Query(20, ge=1, le=100, description="Limit number of results"),
+    offset: int = Query(0, ge=0, description="Pagination offset")
+):
+    users = await list_users(db, role=role, is_active=is_active, limit=limit, offset=offset)
     return {"msg": f"{len(users)} users fetched successfully.", "data": users}
 
 
@@ -54,7 +60,7 @@ async def get_user_route(user_id: int, db: AsyncSession = Depends(get_db), _user
 @router.put("/{user_id}", response_model=UserResponse)
 @require_role(["admin"])
 async def update_user_route(user_id: int, user_data: UserUpdate, db: AsyncSession = Depends(get_db), _user = Depends(get_current_user)):
-    updated_user = await update_user(db, user_id, user_data, _user )
+    updated_user = await update_user(db, user_id, user_data, _user)
     return {"msg": f"User '{updated_user.username}' updated successfully.", "data": updated_user}
 
 

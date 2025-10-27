@@ -4,7 +4,6 @@ from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
 from app.core.db import Base
 
-
 class User(Base):
     __tablename__ = "users"
 
@@ -13,11 +12,17 @@ class User(Base):
     password_hash = Column(String, nullable=False)
     role = Column(String, nullable=False, default="user")
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     token_version = Column(Integer, nullable=False, default=0)
 
-    refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    refresh_tokens = relationship(
+        "RefreshToken",
+        back_populates="user",
+        cascade="all, delete-orphan",
+        passive_deletes=True
+    )
 
 
 class RefreshToken(Base):
@@ -28,4 +33,5 @@ class RefreshToken(Base):
     token = Column(String, unique=True, nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     revoked = Column(Boolean, default=False)
+
     user = relationship("User", back_populates="refresh_tokens")
