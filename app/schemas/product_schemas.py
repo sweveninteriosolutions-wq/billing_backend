@@ -27,6 +27,7 @@ class ProductCreate(BaseModel):
     quantity_showroom: int
     quantity_warehouse: int
     min_stock_threshold: int
+    supplier_id: int
 
     @field_validator('price', 'quantity_showroom', 'quantity_warehouse', 'min_stock_threshold')
     def non_negative_values(cls, value):
@@ -59,6 +60,7 @@ class ProductOut(BaseModel):
     quantity_showroom: int
     quantity_warehouse: int
     min_stock_threshold: int
+    supplier_id : Optional[int]= None
 
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
