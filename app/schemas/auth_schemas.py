@@ -11,6 +11,7 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str | None = None
     token_type: Literal["bearer"] = "bearer"
+    role: str
 
     class Config:
         from_attributes = True
