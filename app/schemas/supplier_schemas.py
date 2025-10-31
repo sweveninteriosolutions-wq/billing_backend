@@ -28,6 +28,9 @@ class SupplierUpdate(BaseModel):
 class SupplierOut(SupplierCreate):
     """Schema for returning supplier data"""
     id: int
+    created_by_id: Optional[int] = None
+    updated_by_id: Optional[int] = None
+    created_at: datetime
 
     class Config:
         from_attributes = True

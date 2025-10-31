@@ -27,6 +27,7 @@ ALLOWED_SORT_FIELDS = {
 # ---------------------------
 async def create_supplier(db: AsyncSession, data: SupplierCreate, current_user) -> dict:
     try:
+        # 🔍 Check if supplier already exists (not deleted)
         existing = await db.execute(
             select(Supplier).where(Supplier.name == data.name, Supplier.is_deleted == False)
         )
@@ -36,11 +37,14 @@ async def create_supplier(db: AsyncSession, data: SupplierCreate, current_user) 
                 detail=f"Supplier '{data.name}' already exists"
             )
 
+        # ✅ Create supplier
         supplier = Supplier(**data.model_dump())
         supplier.created_by_id = current_user.id
+
         db.add(supplier)
         await db.flush()
 
+        # 📝 Log activity
         await log_user_activity(
             db,
             user_id=current_user.id,
@@ -50,13 +54,35 @@ async def create_supplier(db: AsyncSession, data: SupplierCreate, current_user) 
 
         await db.commit()
         await db.refresh(supplier)
-        return {"message": "Supplier created successfully", "data": SupplierOut.model_validate(supplier)}
+
+        return {
+            "message": "Supplier created successfully",
+            "data": SupplierOut.model_validate(supplier)
+        }
+
+    except IntegrityError as e:
+        # ⚠️ Catch UNIQUE constraint errors safely
+        await db.rollback()
+        if "UNIQUE constraint failed" in str(e.orig):
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Supplier with the same name already exists."
+            )
+        raise HTTPException(status_code=400, detail="Database integrity error")
+
+    except HTTPException:
+        # Let existing HTTP errors (like 422 above) bubble up cleanly
+        raise
 
     except Exception as e:
+        # 🧨 Catch all others
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
-# ---------------------------
+#-----------------------------------
 # GET ALL SUPPLIERS (with filters, pagination, sorting)
 # ---------------------------
 async def get_all_suppliers(
@@ -125,6 +151,7 @@ async def get_supplier(db: AsyncSession, supplier_id: int) -> dict:
 # UPDATE SUPPLIER
 # ---------------------------
 async def update_supplier(db: AsyncSession, supplier_id: int, data: SupplierUpdate, current_user) -> dict:
+    # Fetch existing supplier
     result = await db.execute(
         select(Supplier).where(Supplier.id == supplier_id, Supplier.is_deleted == False)
     )
@@ -132,14 +159,25 @@ async def update_supplier(db: AsyncSession, supplier_id: int, data: SupplierUpda
     if not supplier:
         raise HTTPException(status_code=404, detail="Supplier not found")
 
+    # Check for duplicate name if name is being updated
+    if data.name and data.name != supplier.name:
+        existing = await db.execute(
+            select(Supplier).where(Supplier.name == data.name, Supplier.is_deleted == False)
+        )
+        duplicate = existing.scalars().first()
+        if duplicate:
+            raise HTTPException(status_code=400, detail=f"Supplier name '{data.name}' already exists")
+
     changes = []
     for key, value in data.model_dump(exclude_unset=True).items():
         old_val = getattr(supplier, key)
         if old_val != value:
             changes.append(f"{key}: {old_val} → {value}")
             setattr(supplier, key, value)
+
     supplier.updated_by_id = current_user.id
     db.add(supplier)
+
     if current_user and changes:
         await log_user_activity(
             db,
@@ -147,10 +185,9 @@ async def update_supplier(db: AsyncSession, supplier_id: int, data: SupplierUpda
             username=current_user.username,
             message=f"{current_user.role.capitalize()} updated supplier '{supplier.name}' — {', '.join(changes)}"
         )
+
     await db.commit()
     await db.refresh(supplier)
-
-
 
     return {"message": "Supplier updated successfully", "data": SupplierOut.model_validate(supplier)}
 
