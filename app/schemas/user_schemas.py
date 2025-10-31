@@ -1,6 +1,7 @@
 # app/schemas/user_schemas.py
 from pydantic import BaseModel
 from typing import Optional, List
+from datetime import datetime
 
 class UserLogin(BaseModel):
     username: str
@@ -25,6 +26,9 @@ class UserUpdate(BaseModel):
 
 class UserOut(UserBase):
     id: int
+    is_active:bool
+    last_login: Optional[datetime] = None
+    is_online:bool
 
     class Config:
         from_attributes = True

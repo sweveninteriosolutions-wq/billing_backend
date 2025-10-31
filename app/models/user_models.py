@@ -1,4 +1,3 @@
-# app/models/user_models.py
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
@@ -13,6 +12,9 @@ class User(Base):
     role = Column(String, nullable=False, default="user")
     is_active = Column(Boolean, default=True)
     token_version = Column(Integer, nullable=False, default=0)
+    
+    last_login = Column(DateTime(timezone=True), nullable=True)
+    is_online = Column(Boolean, default=False)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

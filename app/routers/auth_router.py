@@ -1,6 +1,7 @@
-# File: app/routers/auth_router.py
 from fastapi import APIRouter, Depends, HTTPException, Body, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import update
+from sqlalchemy.sql import func
 
 from app.core.db import get_db
 from app.schemas.auth_schemas import UserLogin, TokenResponse, MessageResponse
@@ -12,25 +13,38 @@ from app.services.auth_service import (
 )
 from app.utils.get_user import get_current_user
 from app.utils.activity_helpers import log_user_activity
-
 from app.services.alerts_service import get_stock_alerts
+from app.models.user_models import User
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
 
 
+# --------------------------
+# LOGIN
+# --------------------------
 @router.post("/login", response_model=TokenResponse, status_code=status.HTTP_200_OK)
 async def login(request: Request, data: UserLogin, db: AsyncSession = Depends(get_db)):
     """Authenticate user and issue access + refresh tokens."""
     user = await authenticate_user(db, data.username, data.password)
 
+    # Update last_login + mark online
+    await db.execute(
+        update(User)
+        .where(User.id == user.id)
+        .values(last_login=func.now(), is_online=True)
+    )
+
     access_token, refresh_token = await create_tokens(db, user)
 
+    # Log login activity
     await log_user_activity(
         db=db,
         user_id=user.id,
         username=user.username,
         message=f"User '{user.username}' logged in.",
     )
+
+    # Optional: Auto stock alert check for admin/inventory
     if user.role in ["admin", "inventory"]:
         try:
             alerts = await get_stock_alerts(db, current_user=user)
@@ -54,6 +68,9 @@ async def login(request: Request, data: UserLogin, db: AsyncSession = Depends(ge
     )
 
 
+# --------------------------
+# REFRESH TOKEN
+# --------------------------
 @router.post("/refresh", response_model=TokenResponse, status_code=status.HTTP_200_OK)
 async def refresh_token_endpoint(
     request: Request,
@@ -78,14 +95,24 @@ async def refresh_token_endpoint(
     )
 
 
+# --------------------------
+# LOGOUT
+# --------------------------
 @router.post("/logout", response_model=MessageResponse, status_code=status.HTTP_200_OK)
 async def logout(
     request: Request,
     db: AsyncSession = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    """Logout user and revoke active tokens."""
+    """Logout user, revoke tokens, and mark as offline."""
     response = await logout_user(db, current_user.username)
+
+    # Mark user offline
+    await db.execute(
+        update(User)
+        .where(User.id == current_user.id)
+        .values(is_online=False)
+    )
 
     await log_user_activity(
         db=db,
@@ -93,6 +120,6 @@ async def logout(
         username=current_user.username,
         message=f"User '{current_user.username}' logged out.",
     )
-    await db.commit()
 
+    await db.commit()
     return response
