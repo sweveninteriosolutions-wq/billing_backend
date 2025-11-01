@@ -300,16 +300,19 @@ async def move_to_sales(db: AsyncSession, quotation_id: int, _user) -> Quotation
     await db.refresh(quotation)
     return QuotationResponse(message="Quotation moved to sales successfully", data=QuotationOut.from_orm(quotation))
 
-
-# --------------------------
-# MOVE TO INVOICE
-# --------------------------
-async def move_to_invoice(db: AsyncSession, quotation_id: int, _user) -> QuotationResponse:
-    quotation = await db.get(Quotation, quotation_id)
+async def move_to_invoice(db: AsyncSession, quotation_id: int, _user):
+    result = await db.execute(
+        select(Quotation)
+        .options(selectinload(Quotation.customer))
+        .where(Quotation.id == quotation_id)
+    )
+    quotation = result.unique().scalar_one_or_none()
     if not quotation or quotation.is_deleted:
         raise HTTPException(status_code=404, detail="Quotation not found")
+
     if quotation.moved_to_sales or quotation.moved_to_invoice:
         raise HTTPException(status_code=400, detail="Quotation already moved")
+
     if not quotation.approved:
         raise HTTPException(status_code=400, detail="Quotation must be approved before moving to invoice")
 
@@ -328,7 +331,10 @@ async def move_to_invoice(db: AsyncSession, quotation_id: int, _user) -> Quotati
 
     await db.commit()
     await db.refresh(quotation)
-    return QuotationResponse(message="Quotation moved to invoice successfully", data=QuotationOut.from_orm(quotation))
+    return QuotationResponse(
+        message="Quotation moved to invoice successfully",
+        data=QuotationOut.from_orm(quotation)
+    )
 
 
 # --------------------------
