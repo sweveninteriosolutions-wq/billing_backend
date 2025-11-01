@@ -2,7 +2,7 @@
 
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, text
+from sqlalchemy import select, text, func
 from datetime import datetime
 
 from app.models.stock_transfer_models import StockTransfer, TransferStatus
@@ -215,3 +215,21 @@ async def delete_stock_transfer(db: AsyncSession, transfer_id: int, current_user
 
     await db.commit()
     return {"message": "Stock transfer deleted successfully."}
+
+
+async def get_stick_transfer_summary_service(db: AsyncSession):
+        """Return total quantities in warehouse and showroom."""
+        warehouse_query = await db.execute(
+            select(func.sum(Product.quantity_warehouse))
+        )
+        showroom_query = await db.execute(
+            select(func.sum(Product.quantity_showroom))
+        )
+
+        warehouse_count = warehouse_query.scalar() or 0
+        showroom_count = showroom_query.scalar() or 0
+
+        return {
+            "warehouse": warehouse_count,
+            "showroom": showroom_count,
+        }

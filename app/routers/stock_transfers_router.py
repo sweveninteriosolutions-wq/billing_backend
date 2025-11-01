@@ -10,6 +10,7 @@ from app.services.stock_transfer_service import (
     update_stock_transfer,
     delete_stock_transfer,
     get_all_stock_transfers,
+    get_stick_transfer_summary_service
 )
 from app.schemas.stock_transfer_schemas import (
     StockTransferCreate,
@@ -22,7 +23,15 @@ from app.utils.check_roles import require_role
 
 router = APIRouter(prefix="/transfers", tags=["Stock Transfers"])
 
+@router.get("/summary")
+@require_role(["admin", "inventory"])
+async def get_stick_transfer_summary(
+    db: AsyncSession = Depends(get_db),
+    _user=Depends(get_current_user),
+):
+    return await get_stick_transfer_summary_service(db)
 
+   
 # --------------------------
 # CREATE STOCK TRANSFER
 # --------------------------
