@@ -17,7 +17,7 @@ class GRNCreate(BaseModel):
     purchase_order: Optional[str]
     notes: Optional[str]
     bill_number: Optional[str]
-    bill_file: Optional[str]  # path or filename
+    bill_file: Optional[str] = None  # path or filename
     items: List[GRNItemCreate]
 
 class GRNItemOut(GRNItemCreate):
