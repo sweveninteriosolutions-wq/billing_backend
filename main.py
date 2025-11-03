@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routers import (
     activity_router, alerts_router, auth_router, complaint_router, customers_router,
     grns_router, invoice_router, loyality_router, payments_router, products_router,
-    quotations_router, sales_orders_router, suppliers_router, transfers_router, users_router
+    quotations_router, sales_orders_router, suppliers_router, transfers_router, users_router, discount_router
 )
 from app.core.db import Base, engine, init_models
 from app.middleware.activity_logger import ActivityLoggerMiddleware
@@ -45,7 +45,7 @@ app.include_router(sales_orders_router)
 app.include_router(suppliers_router)
 app.include_router(transfers_router)
 app.include_router(users_router)
-
+app.include_router(discount_router)
 #added
 
 

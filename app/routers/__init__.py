@@ -15,6 +15,7 @@ from .sales_orders_router import router as sales_orders_router
 from .suppliers_router import router as suppliers_router
 from .stock_transfers_router import router as transfers_router
 from .users_router import router as users_router
+from .discount_router import router as discount_router
 
 __all__ = [
     "activity_router",
@@ -32,4 +33,5 @@ __all__ = [
     "suppliers_router",
     "stock_transfers_router",
     "users_router",
+    "discount_router",
 ]
