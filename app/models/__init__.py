@@ -8,3 +8,4 @@ from app.models.product_models import Product
 from app.models.supplier_models import Supplier
 from app.models.grn_models import GRN, GRNItem
 from app.models.stock_transfer_models import StockTransfer, LocationEnum
+from app.models.discount_models import Discount

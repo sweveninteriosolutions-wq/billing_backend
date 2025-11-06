@@ -28,6 +28,7 @@ class Invoice(Base):
     customer_id = Column(Integer, ForeignKey("customers.id", ondelete="CASCADE"), nullable=False, index=True)
     quotation_id = Column(Integer, ForeignKey("quotations.id", ondelete="SET NULL"), nullable=True, index=True)
     sales_order_id = Column(Integer, ForeignKey("sales_orders.id", ondelete="SET NULL"), nullable=True, index=True)
+    discount_id = Column(Integer, ForeignKey("discounts.id", ondelete="SET NULL",  name="fk_invoices_customer_id"), nullable=True, index=True)
 
     # Financial fields
     total_amount = Column(Numeric(14, 2), nullable=False, default=Decimal("0.00"))
@@ -53,6 +54,8 @@ class Invoice(Base):
     quotation = relationship("Quotation", back_populates="invoices", lazy="joined")
     sales_order = relationship("SalesOrder", back_populates="invoices", lazy="joined")
     complaints = relationship("Complaint", back_populates="invoice", cascade="all, delete-orphan", lazy="selectin")
+    discount = relationship("Discount", back_populates="invoices", lazy="selectin")
+
 
     # User tracking
     created_by_user = relationship("User", foreign_keys=[created_by], lazy="selectin")

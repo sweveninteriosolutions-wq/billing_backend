@@ -250,8 +250,6 @@ async def get_all_sales_orders(db: AsyncSession, _user) -> list[SalesOrderRespon
         select(SalesOrder).options(selectinload(SalesOrder.quotation)).order_by(SalesOrder.created_at.desc())
     )
     orders = result.scalars().all()
-    if not orders:
-        raise HTTPException(status_code=404, detail="No sales orders found")
     return [SalesOrderResponse.model_validate(o, from_attributes=True) for o in orders]
 
 

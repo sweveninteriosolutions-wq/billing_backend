@@ -14,7 +14,8 @@ from app.schemas.invoice_schemas import (
     ApproveResponse,
     ReadyToInvoiceResponse,
     Approve,
-    PaymentResponse
+    PaymentResponse,
+    InvoiceDetailedResponse
 )
 from app.services.invoice_service import (
     create_invoice,
@@ -106,7 +107,7 @@ async def get_all_invoices_route(
 # ------------------------------------------------------------
 # GET /billing/{invoice_id}
 # ------------------------------------------------------------
-@router.get("/{invoice_id}", response_model=InvoiceResponse)
+@router.get("/{invoice_id}", response_model=InvoiceDetailedResponse)
 @require_role(["admin", "cashier"])
 async def route_get_invoice(
     invoice_id: int,
@@ -149,7 +150,7 @@ async def route_apply_discount(
             _user,
             db,
             invoice_id,
-            payload.discount_amount,
+            code=payload.code,
             note=payload.note
         )
         return inv

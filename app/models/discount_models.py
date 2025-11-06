@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String, Numeric, Date, Boolean
 from app.core.db import Base
+from sqlalchemy.orm import relationship
 
 class Discount(Base):
     __tablename__ = "discounts"
@@ -18,3 +19,5 @@ class Discount(Base):
 
     # New Soft Delete Flag
     is_deleted = Column(Boolean, default=False)
+
+    invoices = relationship("Invoice", back_populates="discount", lazy="selectin")

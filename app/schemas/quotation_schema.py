@@ -74,7 +74,7 @@ class QuotationOut(BaseModel):
 # Response Schemas
 # --------------------------
 class QuotationResponse(BaseModel):
-    message: str
+    message: Optional[str] = None
     data: Optional[QuotationOut] = None
 
 class QuotationListResponse(BaseModel):

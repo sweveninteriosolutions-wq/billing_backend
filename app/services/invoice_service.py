@@ -1,6 +1,6 @@
 # app/services/invoice_service.py
 
-import datetime
+from datetime import datetime, timezone
 import random
 import string
 from decimal import Decimal
@@ -26,81 +26,132 @@ from app.utils.activity_helpers import log_user_activity
 # Helper: Generate Unique Invoice Number
 # -------------------------------------------------------------------------
 async def _generate_invoice_number(session: AsyncSession, prefix: str = "INV"):
-    ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%d%H%M%S")
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
     suffix = ''.join(random.choices(string.digits, k=4))
     return f"{prefix}-{ts}-{suffix}"
 
+from decimal import Decimal
+from sqlalchemy import select, exists, not_
+from sqlalchemy.orm import selectinload
+from app.models import Quotation, SalesOrder, Invoice  # adjust import paths
 
 # -------------------------------------------------------------------------
-# Fetch Quotations & Sales Orders Ready for Invoice
+# Fetch Quotations & Sales Orders Ready for Invoice (Async-safe, eager-loaded)
 # -------------------------------------------------------------------------
-async def get_ready_to_invoice(db: AsyncSession):
-    # Get quotations ready for invoice
+async def get_ready_to_invoice(db):
+    # ---------------------------------------------------------------------
+    # 1️⃣ Quotations ready for invoice (NOT moved to sales)
+    # ---------------------------------------------------------------------
     q_stmt = (
         select(Quotation)
-        .where(Quotation.moved_to_sales == True)
-        .where(Quotation.moved_to_invoice == False)
+        .options(
+            selectinload(Quotation.customer),  # eager load customer
+            selectinload(Quotation.items)      # eager load items
+        )
+        .where(Quotation.moved_to_sales == False)
+        .where(Quotation.moved_to_invoice == True)
         .where(Quotation.approved == True)
         .where(not_(exists().where(Invoice.quotation_id == Quotation.id)))
     )
+
     q_result = await db.execute(q_stmt)
     quotations = q_result.unique().scalars().all()
 
     quotations_data = []
     for q in quotations:
+        customer = q.customer
+        customer_data = {
+            "id": customer.id if customer else None,
+            "name": customer.name if customer else None,
+            "email": customer.email if customer else None,
+            "phone": customer.phone if customer else None,
+        }
+
         items_data = [
             {
                 "id": item.id,
                 "product_id": item.product_id,
                 "product_name": item.product_name,
                 "quantity": item.quantity,
-                "unit_price": item.unit_price,
-                "total": item.total,
+                "unit_price": str(item.unit_price),
+                "total": str(item.total),
             }
             for item in q.items if not item.is_deleted
         ]
+
         quotations_data.append({
             "id": q.id,
             "quotation_number": q.quotation_number,
             "customer_id": q.customer_id,
-            "total_items_amount": q.total_items_amount,
-            "gst_amount": q.gst_amount,
-            "total_amount": q.total_amount,
+            "customer": customer_data,
+            "total_items_amount": str(q.total_items_amount),
+            "gst_amount": str(q.gst_amount),
+            "total_amount": str(q.total_amount),
             "items": items_data,
         })
 
-    # Get sales orders ready for invoice
+    # ---------------------------------------------------------------------
+    # 2️⃣ Sales Orders ready for invoice (quotation already moved to sales)
+    # ---------------------------------------------------------------------
     s_stmt = (
         select(SalesOrder)
+        .options(
+            selectinload(SalesOrder.customer),    # eager load customer
+            selectinload(SalesOrder.quotation)    # eager load linked quotation
+        )
         .where(SalesOrder.approved == True)
         .where(SalesOrder.moved_to_invoice == True)
         .where(not_(exists().where(Invoice.sales_order_id == SalesOrder.id)))
     )
+
     s_result = await db.execute(s_stmt)
     sales_orders = s_result.unique().scalars().all()
 
     sales_orders_data = []
     for so in sales_orders:
+        customer = so.customer
+        quotation = so.quotation
+
+        customer_data = {
+            "id": customer.id if customer else None,
+            "name": customer.name if customer else None,
+            "email": customer.email if customer else None,
+            "phone": customer.phone if customer else None,
+        }
+
+        quotation_data = {
+            "id": quotation.id if quotation else None,
+            "quotation_number": quotation.quotation_number if quotation else None,
+            "quotation_date": quotation.created_at if quotation else None,
+        }
+
+        # Calculate total
         total_amount = Decimal("0.00")
         if so.quotation_snapshot:
             for item in so.quotation_snapshot:
-                total_amount += Decimal(str(item.get("total", 0)))
-            gst = total_amount * Decimal("0.18")
+                total_amount += Decimal(str(item.get("total", item.get("total_price", 0))))
+            gst = total_amount * Decimal("0.18")  # GST 18% (adjust if needed)
             total_amount += gst
+
         sales_orders_data.append({
             "id": so.id,
+            "sales_order_number": so.id,
             "customer_id": so.customer_id,
+            "customer": customer_data,
             "quotation_id": so.quotation_id,
+            "quotation": quotation_data,
             "quotation_snapshot": so.quotation_snapshot,
-            "total_amount": total_amount,
+            "total_amount": str(total_amount),
             "customer_name": so.customer_name,
         })
 
+    # ---------------------------------------------------------------------
+    # Return Combined Data
+    # ---------------------------------------------------------------------
     return {
         "quotations": quotations_data,
         "sales_orders": sales_orders_data,
     }
-
 
 # -------------------------------------------------------------------------
 # Create Invoice
@@ -190,18 +241,20 @@ async def create_invoice(
 
     raise RuntimeError("Could not generate unique invoice number after retries")
 
-
 # -------------------------------------------------------------------------
-# Apply Discount
+# Apply Discount Using Discount Code
 # -------------------------------------------------------------------------
 async def apply_discount(
     _user,
     session: AsyncSession,
     invoice_id: int,
-    discount_amount: Decimal,
+    code: str,
     note: str = None,
 ) -> InvoiceResponse:
-    discount_amount = to_decimal(discount_amount)
+    from app.models.discount_models import Discount  # Import inside to avoid circular import
+    from sqlalchemy import select
+
+    # Fetch invoice
     result = await session.execute(
         select(Invoice)
         .options(selectinload(Invoice.customer))
@@ -211,17 +264,51 @@ async def apply_discount(
     if not invoice:
         raise ValueError("Invoice not found")
 
+    # Check invoice eligibility
     if invoice.discounted_amount > Decimal("0.00"):
         raise ValueError("Discount has already been applied to this invoice")
     if invoice.status == InvoiceStatus.PAID:
         raise ValueError("Cannot apply discount to a paid invoice")
-    if discount_amount < 0:
-        raise ValueError("Discount must be non-negative")
+
+    # Fetch discount by code
+    discount_result = await session.execute(
+        select(Discount).where(Discount.code == code, Discount.is_deleted == False)
+    )
+    discount = discount_result.scalar_one_or_none()
+    if not discount:
+        raise ValueError("Invalid discount code")
+
+    # Validate discount status and date range
+    today = datetime.now().date()
+    if discount.status != "active":
+        raise ValueError("This discount code is not active")
+    if discount.start_date and discount.start_date > today:
+        raise ValueError("This discount is not yet active")
+    if discount.end_date and discount.end_date < today:
+        raise ValueError("This discount has expired")
+    if discount.usage_limit and discount.used_count >= discount.usage_limit:
+        raise ValueError("This discount has reached its usage limit")
+
+    # Calculate discount amount
+    if discount.discount_type == "flat":
+        discount_amount = to_decimal(discount.discount_value)
+    elif discount.discount_type == "percentage":
+        discount_amount = to_decimal(
+            (invoice.total_amount * discount.discount_value) / 100
+        )
+    else:
+        raise ValueError("Unknown discount type")
+
     if discount_amount > invoice.total_amount:
         raise ValueError("Discount cannot exceed invoice total")
 
+    # Apply discount to invoice
     invoice.discounted_amount = discount_amount
-    invoice.balance_due = to_decimal(invoice.total_amount - invoice.discounted_amount - invoice.total_paid)
+    invoice.balance_due = to_decimal(
+        invoice.total_amount - invoice.discounted_amount - invoice.total_paid
+    )
+
+    # Update invoice status
     if invoice.balance_due == Decimal("0.00"):
         invoice.status = InvoiceStatus.PAID
     elif invoice.total_paid > Decimal("0.00"):
@@ -229,11 +316,16 @@ async def apply_discount(
     else:
         invoice.status = InvoiceStatus.PENDING
 
+    # Link invoice to discount
+    invoice.discount_id = discount.id
+    discount.used_count += 1
+
+    # Log user activity
     await log_user_activity(
         db=session,
         user_id=_user.id,
         username=_user.username,
-        message=f"Applied discount of ₹{discount_amount:.2f} to Invoice ID {invoice.id}",
+        message=f"Applied discount code '{discount.code}' ({discount.discount_type}) worth ₹{discount_amount:.2f} to Invoice ID {invoice.id}",
     )
 
     await session.commit()
@@ -404,8 +496,20 @@ async def get_all_invoices(
 
 
 async def get_invoice_by_id(session: AsyncSession, invoice_id: int) -> Optional[Invoice]:
-    res = await session.execute(select(Invoice).where(Invoice.id == invoice_id))
-    return res.unique().scalar_one_or_none()
+    result = await session.execute(
+    select(Invoice)
+    .options(
+        selectinload(Invoice.customer),
+        selectinload(Invoice.payments),
+        selectinload(Invoice.discount),
+        selectinload(Invoice.sales_order).selectinload(SalesOrder.quotation),
+        selectinload(Invoice.quotation).selectinload(Quotation.items),
+    )
+    .where(Invoice.id == invoice_id)
+    )
+
+    invoice = result.unique().scalar_one_or_none()
+    return invoice
 
 
 async def get_invoices_by_customer(

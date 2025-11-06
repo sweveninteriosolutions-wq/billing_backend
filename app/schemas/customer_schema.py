@@ -30,7 +30,7 @@ class CustomerOut(CustomerBase):
         from_attributes = True
 
 class CustomerResponse(BaseModel):
-    message: str
+    message: Optional[str] = None
     data: Optional[CustomerOut] = None
 
 class CustomerListResponse(BaseModel):
