@@ -25,7 +25,7 @@ class Complaint(Base):
     invoice_id = Column(Integer, ForeignKey("invoices.id", ondelete="SET NULL"), nullable=True, index=True)
     sales_order_id = Column(Integer, ForeignKey("sales_orders.id", ondelete="SET NULL"), nullable=True, index=True)
     quotation_id = Column(Integer, ForeignKey("quotations.id", ondelete="SET NULL"), nullable=True, index=True)
-
+    product_id  = Column(Integer, ForeignKey("products.id", ondelete="SET NULL"), nullable=True, index=True)
     title = Column(String, nullable=False)
     description = Column(String, nullable=True)
     status = Column(SAEnum(ComplaintStatus), default=ComplaintStatus.OPEN, nullable=False)
@@ -41,3 +41,10 @@ class Complaint(Base):
     invoice = relationship("Invoice", back_populates="complaints", lazy="selectin")
     sales_order = relationship("SalesOrder", back_populates="complaints", lazy="selectin")
     quotation = relationship("Quotation", back_populates="complaints", lazy="selectin")
+    @property
+    def customer_name(self):
+        return self.customer.name if self.customer else "N/A"
+
+    @property
+    def customer_phone(self):
+        return self.customer.phone if self.customer else None
